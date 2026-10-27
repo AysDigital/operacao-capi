@@ -29,4 +29,34 @@
 - Endereços: https://ops.capimarketing.online (CNAME para o Vercel, HTTPS ok) e https://operacao-capi.vercel.app.
 - Supabase Auth: Site URL e Redirect URLs não foram alteradas (são compartilhadas com o dashboard). Não há recuperação de senha no app; troca de senha é pelo painel do Supabase.
 
-**Próximas etapas (não feitas):** cadastro de ofertas, contas de anúncio e etiquetas; quadro (kanban) com as 10 listas; card detalhado; modelos; métricas por `meta_ad_id`.
+**Próximas etapas (não feitas):** quadro (kanban) com as 10 listas; card detalhado; modelos; métricas por `meta_ad_id`.
+
+## Etapa 2: telas de cadastro (27/10/2026)
+
+Sem migration nova: as contagens e os bloqueios de exclusão usam o que a 001 já criou. Próxima migration continua sendo a 002.
+
+**Ofertas (`/ofertas`, `src/pages/Ofertas.tsx`):**
+- Tabela com cor, nome, sigla, idioma, status (selo com ícone e texto) e quantidade de cards (`cards(count)`, inclui arquivados).
+- Modal de criar/editar: nome, sigla (só maiúsculas e números, até 8), idioma, status e cor (paleta de 12 cores em `PALETA`, sem o coral).
+- Prévia do nome dos ads (`PC-FR-AD1-H1-M1-VD`).
+- Trocar sigla ou idioma de uma oferta com cards mostra o aviso de que os nomes dos ads serão atualizados (quem renomeia é o gatilho do banco).
+- Excluir: com cards, não deixa e oferece "Mudar para pausada"; sem cards, pede confirmação. O banco também bloqueia (FK `restrict`).
+
+**Configurações (`/config`, com abas):**
+- **Contas de anúncio** (`/config/contas`):
+  - tabela com apelido (pílula), nome, BM, ID no Meta e interruptor Ativa/Inativa direto na linha;
+  - inativas ficam acinzentadas e no fim, e a ordem é por apelido, com número natural (C2 antes de C10);
+  - apelido em maiúsculas, até 6 caracteres, único;
+  - o ID aceita `act_` e salva só o número;
+  - excluir: com veiculações, só deixa desativar.
+- **Etiquetas** (`/config/etiquetas`):
+  - lista com prévia da pílula e número de cards;
+  - criar e editar com nome e cor;
+  - excluir com confirmação dizendo em quantos cards ela está. A etiqueta sai dos cards antes de ser apagada, para o histórico de cada card registrar o nome dela.
+
+**Componentes novos:**
+- `ds.tsx`: `Modal`, `Interruptor`, `BolinhaCor`, `SeletorCor`.
+- `ui.tsx`: `Campo`, `entrada`, `BotaoExcluir`, `acoes` no `TituloPagina`.
+- `Toast.tsx`: `useToast()` para sucesso e erro.
+- `lib/cadastros.ts`: tipos, status das ofertas, paleta e tradução dos erros do banco (`mensagemErro`).
+- `lib/useCarregar.ts`: carregar listas.

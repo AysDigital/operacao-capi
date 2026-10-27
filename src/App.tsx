@@ -1,9 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider, sair, useAuth } from './auth/AuthProvider'
 import { Layout, TELAS } from './components/Layout'
+import { ToastProvider } from './components/Toast'
 import { Botao, TelaCentral } from './components/ui'
 import { supabaseConfigurado } from './lib/supabase'
+import { Configuracoes } from './pages/Configuracoes'
+import { ContasAnuncio } from './pages/config/ContasAnuncio'
+import { Etiquetas } from './pages/config/Etiquetas'
 import { Login } from './pages/Login'
+import { Ofertas } from './pages/Ofertas'
 import { Placeholder } from './pages/Placeholder'
 
 function Portao() {
@@ -32,9 +37,15 @@ function Portao() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        {TELAS.map((t) => (
+        {TELAS.filter((t) => !['/ofertas', '/config'].includes(t.caminho)).map((t) => (
           <Route key={t.caminho} path={t.caminho} element={<Placeholder titulo={t.titulo} />} />
         ))}
+        <Route path="/ofertas" element={<Ofertas />} />
+        <Route path="/config" element={<Configuracoes />}>
+          <Route index element={<Navigate to="contas" replace />} />
+          <Route path="contas" element={<ContasAnuncio />} />
+          <Route path="etiquetas" element={<Etiquetas />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
@@ -54,9 +65,11 @@ export default function App() {
   }
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Portao />
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <Portao />
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   )
 }

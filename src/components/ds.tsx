@@ -330,3 +330,103 @@ export function PainelLateral({ titulo, onFechar, children }: { titulo: string; 
     </div>
   )
 }
+
+/** Janela sobre a tela (formulários de criar/editar). Fecha no Esc, no × e clicando fora. */
+export function Modal({
+  titulo,
+  onFechar,
+  rodape,
+  children,
+}: {
+  titulo: string
+  onFechar: () => void
+  rodape?: ReactNode
+  children: ReactNode
+}) {
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && onFechar()
+    document.addEventListener('keydown', tecla)
+    return () => document.removeEventListener('keydown', tecla)
+  }, [onFechar])
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/30 sm:items-center sm:p-4" onMouseDown={onFechar}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-card bg-surface shadow-xl sm:rounded-card"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
+          <h2 className="text-lg font-semibold">{titulo}</h2>
+          <button onClick={onFechar} aria-label="Fechar" className="rounded-control px-2 py-1 text-lg leading-none text-muted hover:bg-surface-2 hover:text-ink">
+            ×
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4">{children}</div>
+        {rodape && <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">{rodape}</div>}
+      </div>
+    </div>
+  )
+}
+
+/** Interruptor liga/desliga, sempre com o texto do estado ao lado. */
+export function Interruptor({
+  ligado,
+  onMudar,
+  textoLigado,
+  textoDesligado,
+  desabilitado,
+}: {
+  ligado: boolean
+  onMudar: (v: boolean) => void
+  textoLigado: string
+  textoDesligado: string
+  desabilitado?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={ligado}
+      disabled={desabilitado}
+      onClick={() => onMudar(!ligado)}
+      className="inline-flex items-center gap-2 text-sm disabled:opacity-50"
+    >
+      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${ligado ? 'bg-good' : 'bg-line'}`}>
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow transition-all ${ligado ? 'left-[18px]' : 'left-0.5'}`} />
+      </span>
+      <span className={ligado ? 'text-ink' : 'text-muted'}>{ligado ? textoLigado : textoDesligado}</span>
+    </button>
+  )
+}
+
+/** Bolinha de cor (ofertas, etiquetas). */
+export function BolinhaCor({ cor, tamanho = 'h-3.5 w-3.5' }: { cor: string | null; tamanho?: string }) {
+  return <span aria-hidden className={`inline-block shrink-0 rounded-full border border-black/10 ${tamanho}`} style={{ background: cor ?? 'transparent' }} />
+}
+
+/** Paleta pronta para escolher uma cor. */
+export function SeletorCor({ cores, valor, onMudar }: { cores: readonly { hex: string; nome: string }[]; valor: string | null; onMudar: (hex: string) => void }) {
+  return (
+    <div role="radiogroup" className="flex flex-wrap gap-2">
+      {cores.map((c) => {
+        const ativa = valor?.toLowerCase() === c.hex.toLowerCase()
+        return (
+          <button
+            key={c.hex}
+            type="button"
+            role="radio"
+            aria-checked={ativa}
+            aria-label={c.nome}
+            title={c.nome}
+            onClick={() => onMudar(c.hex)}
+            className={`h-8 w-8 rounded-full border border-black/10 transition ${ativa ? 'ring-2 ring-ink ring-offset-2 ring-offset-surface' : 'hover:scale-110'}`}
+            style={{ background: c.hex }}
+          />
+        )
+      })}
+    </div>
+  )
+}

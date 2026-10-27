@@ -29,9 +29,9 @@ export function Botao({
 }
 
 /** Título da página. A explicação (`subtitulo`) não fica escrita embaixo: abre na dica ao lado do título. */
-export function TituloPagina({ children, subtitulo }: { children: ReactNode; subtitulo?: string }) {
+export function TituloPagina({ children, subtitulo, acoes }: { children: ReactNode; subtitulo?: string; acoes?: ReactNode }) {
   return (
-    <header className="mb-6">
+    <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <h1 className="text-2xl font-semibold tracking-tight">
         {subtitulo ? (
           <Dica conteudo={subtitulo} lado="esquerda">
@@ -41,6 +41,33 @@ export function TituloPagina({ children, subtitulo }: { children: ReactNode; sub
           children
         )}
       </h1>
+      {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
     </header>
+  )
+}
+
+/** Classe padrão de caixas de texto e seletores. */
+export const entrada =
+  'mt-1 w-full rounded-control border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-muted disabled:opacity-60'
+
+/** Campo de formulário: rótulo em cima, erro embaixo. */
+export function Campo({ rotulo, erro, children }: { rotulo: ReactNode; erro?: string | null; children: ReactNode }) {
+  return (
+    <label className="block text-sm font-medium">
+      {rotulo}
+      {children}
+      {erro && <span className="mt-1 block text-xs font-normal text-bad">{erro}</span>}
+    </label>
+  )
+}
+
+/** Botão de excluir (texto vermelho, sem fundo). */
+export function BotaoExcluir(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      {...props}
+      className={`rounded-control px-3 py-2 text-sm font-medium text-bad hover:bg-bad-soft disabled:opacity-50 ${props.className ?? ''}`}
+    />
   )
 }
