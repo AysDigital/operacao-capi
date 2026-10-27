@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* Modo escuro controlado pela classe .dark no <html> (ver src/lib/theme.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =====================================================================
+   Identidade visual Capi (a mesma do financeiro) — tokens num lugar só, claro e escuro.
+   Manual de marca: creme/areia/tinta na base, coral só para ação (60·30·10),
+   teal = sucesso, azul = informação, amarelo = realce pontual.
+   Fontes: Poppins nos títulos, Inter no texto e nos números.
+
+   Nas telas novas, use os nomes com significado:
+     bg-page, bg-surface, bg-surface-2, border-line, text-ink, text-muted,
+     bg-accent / text-accent-strong / bg-accent-soft  (ação: botões, item ativo)
+     text-good / bg-good-soft   (conciliado, positivo, coberto)
+     text-bad / bg-bad-soft     (divergente, negativo, descoberto)
+     text-warn / bg-warn-soft   (atenção, provisório, estimado)
+     text-info / bg-info-soft   (informação, projetado)
+     series-1 / series-2 / series-3 (gráficos; validadas para daltonismo)
+   Status sempre com ícone e texto, nunca só a cor.
+
+   Componentes: src/components/ds.tsx.
+   ===================================================================== */
+:root {
+  --c-page: #fffdf7;        /* creme */
+  --c-surface: #ffffff;
+  --c-surface-2: #f1efe8;   /* areia */
+  --c-line: #e6e2d8;
+  --c-ink: #2b2a28;         /* tinta */
+  --c-muted: #6f6b63;
+  --c-accent: #ff6b4a;      /* coral: só ação */
+  --c-accent-ink: #ffffff;
+  --c-accent-strong: #c9452a;
+  --c-accent-soft: #ffece6;
+  --c-good: #0e8a6b;        /* teal (texto) */
+  --c-good-soft: #e3f6ef;
+  --c-bad: #c0352b;         /* vermelho fechado, diferente do coral */
+  --c-bad-soft: #fdecea;
+  --c-warn: #9a6400;        /* amarelo da marca, legível como texto */
+  --c-warn-soft: #fff6d6;
+  --c-info: #2e7bc4;        /* azul da marca (texto) */
+  --c-info-soft: #e9f3fd;
+  --c-series-1: #3d8fdb;
+  --c-series-2: #b07a3e;    /* pelagem */
+  --c-series-3: #6a5acd;    /* só em gráficos (a marca não tem 3ª cor fora de status) */
+  --c-series-4: #d55181;    /* só em gráficos: meta otimista */
+}
+.dark {
+  --c-page: #26251f;        /* grafite */
+  --c-surface: #2f2e28;
+  --c-surface-2: #3a3933;
+  --c-line: #44423b;
+  --c-ink: #f5f1e8;
+  --c-muted: #aba69b;
+  --c-accent: #ff6b4a;
+  --c-accent-ink: #ffffff;
+  --c-accent-strong: #ff8c71;
+  --c-accent-soft: #4a2c22;
+  --c-good: #3fd3a9;
+  --c-good-soft: #133a30;
+  --c-bad: #f0827a;
+  --c-bad-soft: #4a2220;
+  --c-warn: #ffd23f;
+  --c-warn-soft: #463a12;
+  --c-info: #7ab8f0;
+  --c-info-soft: #1d3247;
+  --c-series-1: #3f93df;
+  --c-series-2: #ad773a;
+  --c-series-3: #8c7fe0;
+  --c-series-4: #d55181;
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-page: var(--c-page);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-line: var(--c-line);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-accent: var(--c-accent);
+  --color-accent-ink: var(--c-accent-ink);
+  --color-accent-strong: var(--c-accent-strong);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-good: var(--c-good);
+  --color-good-soft: var(--c-good-soft);
+  --color-bad: var(--c-bad);
+  --color-bad-soft: var(--c-bad-soft);
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+  --color-info: var(--c-info);
+  --color-info-soft: var(--c-info-soft);
+  --color-series-1: var(--c-series-1);
+  --color-series-2: var(--c-series-2);
+  --color-series-3: var(--c-series-3);
+  --color-series-4: var(--c-series-4);
+
+  --radius-card: 0.875rem;
+  --radius-control: 0.625rem;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-page font-sans text-ink antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
