@@ -17,4 +17,16 @@
 - Unicidade: um ad por AD/H/M em cada oferta (arquivados contam); uma veiculação por card + conta; `meta_ad_id` único quando preenchido; sigla única por idioma.
 - RLS: membros ativos leem e escrevem tudo; `atividades` e `membros` só leitura pelo app.
 
-**Próximas etapas (não feitas):** quadro (kanban), cadastro de ofertas/contas/etiquetas, card detalhado, modelos, métricas por `meta_ad_id`.
+**Configuração manual (feita pela usuária em 27/10/2026):**
+- Migration 001 rodada no SQL Editor (sem erros). Próxima migration: 002.
+- Schema `ops` adicionado em Project Settings → Data API → Exposed schemas (junto com `public`, `graphql_public` e `fin`).
+- Membros: **um login só para May e Luciano** (o mesmo do financeiro), cadastrado em `ops.membros` com o nome "May e Luciano". Consequência: o histórico não distingue quem fez o quê, e membros do card e @menções têm pouco uso. Para separar depois, basta criar outro login e cadastrá-lo como membro, sem migration.
+- Login testado localmente (porta 5180) e em produção.
+
+**Publicação:**
+- GitHub: https://github.com/AysDigital/operacao-capi (privado, branch `main`; cada push publica sozinho).
+- Vercel: projeto `operacao-capi`, com as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+- Endereços: https://ops.capimarketing.online (CNAME para o Vercel, HTTPS ok) e https://operacao-capi.vercel.app.
+- Supabase Auth: Site URL e Redirect URLs não foram alteradas (são compartilhadas com o dashboard). Não há recuperação de senha no app; troca de senha é pelo painel do Supabase.
+
+**Próximas etapas (não feitas):** cadastro de ofertas, contas de anúncio e etiquetas; quadro (kanban) com as 10 listas; card detalhado; modelos; métricas por `meta_ad_id`.
