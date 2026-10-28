@@ -100,3 +100,29 @@ Sem migration nova: as contagens e os bloqueios de exclusão usam o que a 001 j�
 - Lembra o último tipo, formato e oferta usados.
 
 **Filtros (`BarraFiltros.tsx`, na URL):** busca por nome, etiqueta, tipo, status da veiculação + conta ("Rejeitado na C2"), só vencedores, mostrar arquivados, limpar filtros e contador de cards visíveis.
+
+## Etapa 3b: melhorias do quadro (28/10/2026)
+
+Pedidas pela usuária depois de testar a etapa 3 (todos os 5 testes ok).
+
+**Migration 003 (`003_listas_arquivar_e_acoes.sql`):**
+- `listas.arquivada`.
+- `ops.mover_cards(ids, lista)`: põe os cards no fim da lista de destino, mantendo a ordem entre eles.
+- `ops.ordenar_cards(ids)`: grava a ordem informada.
+- As duas rodam com as permissões de quem chama (RLS vale) e geram o histórico normal pelos gatilhos. Próxima migration: 004.
+
+**O que mudou no quadro:**
+- **Arrastar o quadro para o lado:** clicar e arrastar no fundo (fora dos cards e botões) rola o quadro na horizontal, só com mouse; no toque, a rolagem já é nativa.
+- **"+ Adicionar card"** fecha ao clicar em qualquer lugar fora do formulário (também fecha no Esc).
+- **Menu "⋯" de cada lista** (`MenuLista.tsx`, posicionado na tela para não ser cortado):
+  - **Ordenar por:** nome (A–Z), mais novos primeiro, mais antigos primeiro, há mais tempo na lista. A ordem é gravada.
+  - **Mover todos os cards** para outra lista.
+  - **Arquivar todos os cards.**
+  - **Arquivar esta lista.**
+  - As ações valem para os cards não arquivados da lista **neste quadro** (num quadro de oferta, só os daquela oferta), ignorando os filtros. O menu mostra quantos são.
+- **"+ Adicionar lista"** no fim do quadro (`NovaLista.tsx`). A lista vale para todos os quadros e entra no fim, com cor cinza.
+- **Arquivar:**
+  - o card se arquiva pelo modal do card ("Arquivar card" / "Restaurar card") ou em lote pelo menu da lista;
+  - a lista arquivada some de todos os quadros, junto com os cards dela;
+  - o botão **Arquivados** na barra abre um painel (`PainelArquivados.tsx`) com as listas e os cards arquivados do quadro atual, cada um com "Restaurar".
+- As listas não estão no tempo real: uma lista criada ou arquivada no outro computador aparece ao recarregar a página.

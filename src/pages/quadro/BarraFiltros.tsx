@@ -13,6 +13,7 @@ export function BarraFiltros({
   contas,
   visiveis,
   aoVivo,
+  onArquivados,
 }: {
   filtros: Filtros
   onFiltros: (f: Filtros) => void
@@ -20,6 +21,7 @@ export function BarraFiltros({
   contas: ContaQuadro[]
   visiveis: number | null
   aoVivo: boolean
+  onArquivados: () => void
 }) {
   const mudar = <K extends keyof Filtros>(k: K, v: Filtros[K]) => onFiltros({ ...filtros, [k]: v })
   const destaque = (ativo: unknown) => (ativo ? 'border-accent text-accent-strong' : '')
@@ -90,6 +92,9 @@ export function BarraFiltros({
       )}
 
       <div className="ml-auto flex items-center gap-3 text-sm text-muted">
+        <button onClick={onArquivados} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
+          Arquivados
+        </button>
         {visiveis !== null && (
           <span className="tabular-nums">
             {visiveis} {visiveis === 1 ? 'card' : 'cards'}

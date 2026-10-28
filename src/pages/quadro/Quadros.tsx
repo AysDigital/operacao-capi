@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, NavLink, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, BolinhaCor, Carregando, Vazio } from '../../components/ds'
 import { Botao } from '../../components/ui'
@@ -18,7 +18,7 @@ type Base = { listas: Lista[]; ofertas: OfertaQuadro[]; contas: ContaQuadro[]; e
 
 async function buscarBase(): Promise<Base> {
   const [listas, ofertas, contas, etiquetas] = await Promise.all([
-    ops().from('listas').select('id, nome, ordem, cor').order('ordem'),
+    ops().from('listas').select('id, nome, ordem, cor, arquivada').order('ordem'),
     ops().from('ofertas').select('id, nome, codigo, idioma, cor, status').order('nome'),
     ops().from('contas_anuncio').select('id, apelido, nome, bm_nome, ativa'),
     ops().from('etiquetas').select('id, nome, cor').order('nome'),
@@ -44,9 +44,13 @@ export function Quadros() {
   const [base, setBase] = useState<Base | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
-  useEffect(() => {
+  const recarregarBase = useCallback(() => {
     buscarBase().then(setBase, (e: Error) => setErro(e.message))
   }, [])
+
+  useEffect(() => {
+    recarregarBase()
+  }, [recarregarBase])
 
   const ofertaId = id === 'todas' ? null : id
   const existe = !ofertaId || !base || base.ofertas.some((o) => o.id === ofertaId)
@@ -81,6 +85,7 @@ export function Quadros() {
           etiquetas={base.etiquetas}
           filtros={filtros}
           onFiltros={(f) => setParams(gravarFiltros(f), { replace: true })}
+          onListasMudaram={recarregarBase}
         />
       ) : (
         <Vazio titulo="Este quadro não existe mais">

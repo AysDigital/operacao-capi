@@ -167,6 +167,7 @@ export const CartaoArrastavel = memo(function CartaoArrastavel({
       {...attributes}
       {...listeners}
       aria-roledescription="card arrastável"
+      data-card
     >
       <CartaoFrente card={card} ctx={ctx} semPrazo={semPrazo} />
     </div>

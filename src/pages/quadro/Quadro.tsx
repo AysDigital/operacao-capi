@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Aviso, Modal } from '../../components/ds'
+import { Botao } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { mensagemErro, type Etiqueta } from '../../lib/cadastros'
 import {
@@ -22,6 +23,7 @@ import {
   gravarLocal,
   LISTAS_SEM_PRAZO,
   lerLocal,
+  ORDENACOES,
   passaNoFiltro,
   posicaoEntre,
   renumerar,
@@ -34,7 +36,10 @@ import {
 import { ops, supabase } from '../../lib/supabase'
 import { BarraFiltros } from './BarraFiltros'
 import { CartaoArrastavel, CartaoFrente, type Contexto } from './Cartao'
+import { MenuLista, type AcaoLista } from './MenuLista'
+import { NovaLista } from './NovaLista'
 import { NovoCard } from './NovoCard'
+import { PainelArquivados } from './PainelArquivados'
 
 const PREFIXO_LISTA = 'lista:'
 
@@ -46,6 +51,7 @@ export function Quadro({
   etiquetas,
   filtros,
   onFiltros,
+  onListasMudaram,
 }: {
   /** null = todas as ofertas */
   ofertaId: string | null
@@ -55,6 +61,8 @@ export function Quadro({
   etiquetas: Etiqueta[]
   filtros: Filtros
   onFiltros: (f: Filtros) => void
+  /** recarrega as listas (criou, arquivou ou restaurou uma) */
+  onListasMudaram: () => void
 }) {
   const toast = useToast()
   const [cards, setCards] = useState<CardQuadro[] | null>(null)
@@ -64,6 +72,7 @@ export function Quadro({
   const [recolhidas, setRecolhidas] = useState<string[]>(() => lerLocal('listas_recolhidas', []))
   const [novoEm, setNovoEm] = useState<string | null>(null)
   const [aberto, setAberto] = useState<string | null>(null)
+  const [verArquivados, setVerArquivados] = useState(false)
   // durante o arrasto: a ordem provisória (ids por lista) e o card arrastado
   const [arrasto, setArrasto] = useState<Record<string, string[]> | null>(null)
   const [ativo, setAtivo] = useState<string | null>(null)
@@ -117,14 +126,22 @@ export function Quadro({
   }, [])
 
   // ---- dados derivados -----------------------------------------------------
+  const ativas = useMemo(() => listas.filter((l) => !l.arquivada), [listas])
   const porId = useMemo(() => new Map((cards ?? []).map((c) => [c.id, c])), [cards])
 
   const colunas = useMemo(() => {
-    const r: Record<string, string[]> = Object.fromEntries(listas.map((l) => [l.id, []]))
+    const r: Record<string, string[]> = Object.fromEntries(ativas.map((l) => [l.id, []]))
     const visiveis = (cards ?? []).filter((c) => passaNoFiltro(c, filtros)).sort((a, b) => a.posicao - b.posicao)
     for (const c of visiveis) r[c.lista_id]?.push(c.id)
     return r
-  }, [cards, listas, filtros])
+  }, [cards, ativas, filtros])
+
+  /** Cards não arquivados de cada lista neste quadro, ignorando os filtros (é sobre eles que as ações da lista agem). */
+  const naLista = useMemo(() => {
+    const r = new Map<string, CardQuadro[]>()
+    for (const c of cards ?? []) if (!c.arquivado) r.set(c.lista_id, [...(r.get(c.lista_id) ?? []), c])
+    return r
+  }, [cards])
 
   const mostradas = arrasto ?? colunas
   const visiveis = Object.values(colunas).reduce((n, ids) => n + ids.length, 0)
@@ -159,6 +176,68 @@ export function Quadro({
     Math.max(0, ...(cards ?? []).filter((c) => c.lista_id === listaId).map((c) => c.posicao)) + 1024
 
   const aoCriar = useCallback((c: CardQuadro) => setCards((cs) => (cs && !cs.some((x) => x.id === c.id) ? [...cs, c] : cs)), [])
+
+  // ---- ações da lista e do card -------------------------------------------
+  const acaoLista = useCallback(
+    async (listaId: string, acao: AcaoLista) => {
+      const daLista = [...(naLista.get(listaId) ?? [])].sort((a, b) => a.posicao - b.posicao)
+      const ids = daLista.map((c) => c.id)
+      const nome = (id: string) => listas.find((l) => l.id === id)?.nome ?? ''
+      const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
+      let error
+      if (acao.tipo === 'ordenar') {
+        const ordenados = [...daLista].sort(ORDENACOES[acao.indice].comparar).map((c) => c.id)
+        const nova = new Map(ordenados.map((id, i) => [id, (i + 1) * 1024]))
+        setCards((cs) => (cs ?? []).map((c) => (nova.has(c.id) ? { ...c, posicao: nova.get(c.id)! } : c)))
+        ;({ error } = await ops().rpc('ordenar_cards', { p_ids: ordenados }))
+        if (!error) toast('bom', `${nome(listaId)} ordenada: ${ORDENACOES[acao.indice].nome.toLowerCase()}.`)
+      } else if (acao.tipo === 'mover') {
+        ;({ error } = await ops().rpc('mover_cards', { p_ids: ids, p_lista: acao.para }))
+        if (!error) toast('bom', `${plural(ids.length, 'card movido', 'cards movidos')} para ${nome(acao.para)}.`)
+      } else if (acao.tipo === 'arquivar_cards') {
+        ;({ error } = await ops().from('cards').update({ arquivado: true }).in('id', ids))
+        if (!error) toast('bom', `${plural(ids.length, 'card arquivado', 'cards arquivados')}.`)
+      } else {
+        ;({ error } = await ops().from('listas').update({ arquivada: true }).eq('id', listaId))
+        if (!error) {
+          toast('bom', `Lista ${nome(listaId)} arquivada.`)
+          onListasMudaram()
+        }
+      }
+      if (error) toast('ruim', mensagemErro(error))
+      carregar()
+    },
+    [naLista, listas, toast, carregar, onListasMudaram],
+  )
+
+  async function arquivarCard(c: CardQuadro, arquivado: boolean) {
+    setAberto(null)
+    setCards((cs) => (cs ?? []).map((x) => (x.id === c.id ? { ...x, arquivado } : x)).filter((x) => filtros.arquivados || !x.arquivado))
+    const { error } = await ops().from('cards').update({ arquivado }).eq('id', c.id)
+    if (error) {
+      toast('ruim', mensagemErro(error))
+      carregar()
+    } else toast('bom', arquivado ? `${c.nome} arquivado.` : `${c.nome} restaurado.`)
+  }
+
+  // ---- arrastar o quadro para o lado (clicando no fundo, fora dos cards) ----
+  const trilho = useRef<HTMLDivElement>(null)
+  const puxando = useRef<{ x: number; rolagem: number } | null>(null)
+
+  function comecarPuxar(e: React.PointerEvent) {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return
+    if ((e.target as HTMLElement).closest('button, input, select, textarea, label, form, a, [data-card]')) return
+    puxando.current = { x: e.clientX, rolagem: trilho.current!.scrollLeft }
+    trilho.current!.setPointerCapture(e.pointerId)
+    e.preventDefault()
+  }
+  function puxar(e: React.PointerEvent) {
+    if (!puxando.current) return
+    trilho.current!.scrollLeft = puxando.current.rolagem - (e.clientX - puxando.current.x)
+  }
+  function soltarPuxar() {
+    puxando.current = null
+  }
 
   // ---- arrastar e soltar ---------------------------------------------------
   const sensores = useSensors(
@@ -265,6 +344,7 @@ export function Quadro({
         contas={contas}
         visiveis={cards ? visiveis : null}
         aoVivo={aoVivo}
+        onArquivados={() => setVerArquivados(true)}
       />
 
       {erro && (
@@ -274,8 +354,15 @@ export function Quadro({
       )}
 
       <DndContext sensors={sensores} collisionDetection={closestCorners} onDragStart={inicio} onDragOver={sobre} onDragEnd={fim} onDragCancel={terminarArrasto}>
-        <div className="-mx-4 flex items-start gap-3 overflow-x-auto px-4 pb-4 md:-mx-10 md:px-10">
-          {listas.map((l) => (
+        <div
+          ref={trilho}
+          onPointerDown={comecarPuxar}
+          onPointerMove={puxar}
+          onPointerUp={soltarPuxar}
+          onPointerCancel={soltarPuxar}
+          className="-mx-4 flex min-h-[calc(100dvh-15rem)] cursor-grab items-start gap-3 overflow-x-auto px-4 pb-4 select-none active:cursor-grabbing md:-mx-10 md:px-10"
+        >
+          {ativas.map((l) => (
             <Coluna
               key={l.id}
               lista={l}
@@ -288,6 +375,9 @@ export function Quadro({
               onAbrir={abrir}
               novoAberto={novoEm === l.id}
               onNovo={setNovoEm}
+              ativas={ativas}
+              qtdNaLista={naLista.get(l.id)?.length ?? 0}
+              onAcao={acaoLista}
             >
               {novoEm === l.id && (
                 <NovoCard
@@ -301,6 +391,7 @@ export function Quadro({
               )}
             </Coluna>
           ))}
+          <NovaLista listas={listas} onCriada={onListasMudaram} />
         </div>
         <DragOverlay dropAnimation={null}>
           {cardAtivo && (
@@ -312,9 +403,28 @@ export function Quadro({
       </DndContext>
 
       {cardAberto && (
-        <Modal titulo={cardAberto.nome} onFechar={() => setAberto(null)}>
+        <Modal
+          titulo={cardAberto.nome}
+          onFechar={() => setAberto(null)}
+          rodape={
+            <Botao variante="secundario" onClick={() => arquivarCard(cardAberto, !cardAberto.arquivado)} className="ml-auto">
+              {cardAberto.arquivado ? 'Restaurar card' : 'Arquivar card'}
+            </Botao>
+          }
+        >
           <p className="text-sm text-muted">Detalhes na próxima etapa.</p>
         </Modal>
+      )}
+
+      {verArquivados && (
+        <PainelArquivados
+          ofertaId={ofertaId}
+          listas={listas}
+          ofertas={ofertas}
+          onFechar={() => setVerArquivados(false)}
+          onListasMudaram={onListasMudaram}
+          onCardsMudaram={carregar}
+        />
       )}
     </>
   )
@@ -331,6 +441,9 @@ const Coluna = memo(function Coluna({
   onAbrir,
   novoAberto,
   onNovo,
+  ativas,
+  qtdNaLista,
+  onAcao,
   children,
 }: {
   lista: Lista
@@ -343,6 +456,9 @@ const Coluna = memo(function Coluna({
   onAbrir: (id: string) => void
   novoAberto: boolean
   onNovo: (id: string | null) => void
+  ativas: Lista[]
+  qtdNaLista: number
+  onAcao: (listaId: string, acao: AcaoLista) => void
   children?: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: PREFIXO_LISTA + lista.id })
@@ -373,6 +489,7 @@ const Coluna = memo(function Coluna({
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: lista.cor ?? undefined }} />
         <h2 className="min-w-0 flex-1 truncate font-sans text-sm font-semibold">{lista.nome}</h2>
         <span className="text-xs text-muted tabular-nums">{ids.length}</span>
+        <MenuLista lista={lista} listas={ativas} qtdCards={qtdNaLista} onAcao={onAcao} />
         <button
           onClick={() => onRecolher(lista.id)}
           title="Recolher a lista"

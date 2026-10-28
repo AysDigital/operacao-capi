@@ -2,7 +2,7 @@ import type { Tom } from '../components/ds'
 import type { Idioma, StatusOferta } from './cadastros'
 import { ops } from './supabase'
 
-export type Lista = { id: string; nome: string; ordem: number; cor: string | null }
+export type Lista = { id: string; nome: string; ordem: number; cor: string | null; arquivada: boolean }
 export type OfertaQuadro = { id: string; nome: string; codigo: string; idioma: Idioma; cor: string | null; status: StatusOferta }
 export type ContaQuadro = { id: string; apelido: string; nome: string; bm_nome: string | null; ativa: boolean }
 export type TipoCard = 'ad' | 'vsl' | 'outro'
@@ -20,6 +20,7 @@ export type CardQuadro = {
   vencedor: boolean
   arquivado: boolean
   lista_desde: string
+  criado_em: string
   etiquetas: string[]
   veiculacoes: Veiculacao[]
   anexos: number
@@ -41,10 +42,18 @@ export const STATUS_VEICULACAO: Record<StatusVeiculacao, { nome: string; tom: To
   pausado: { nome: 'Pausado', tom: 'neutro', icone: '‖' },
 }
 
+/** Opções de "Ordenar por" de uma lista. */
+export const ORDENACOES: { nome: string; comparar: (a: CardQuadro, b: CardQuadro) => number }[] = [
+  { nome: 'Nome (A–Z)', comparar: (a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }) },
+  { nome: 'Mais novos primeiro', comparar: (a, b) => b.criado_em.localeCompare(a.criado_em) },
+  { nome: 'Mais antigos primeiro', comparar: (a, b) => a.criado_em.localeCompare(b.criado_em) },
+  { nome: 'Há mais tempo na lista', comparar: (a, b) => a.lista_desde.localeCompare(b.lista_desde) },
+]
+
 /** Listas onde o tempo parado não é problema (sem destaque amarelo/vermelho). */
 export const LISTAS_SEM_PRAZO = ['Standby', 'Em veiculação', 'Rejeitado']
 
-const CAMPOS_CARD = `id, oferta_id, lista_id, posicao, tipo, nome, vencedor, arquivado, lista_desde,
+const CAMPOS_CARD = `id, oferta_id, lista_id, posicao, tipo, nome, vencedor, arquivado, lista_desde, criado_em,
   card_etiquetas(etiqueta_id), veiculacoes(conta_id, status, data_status),
   anexos(count), comentarios(count), checklists(checklist_itens(feito))`
 
@@ -68,6 +77,7 @@ function converter(c: CardBanco): CardQuadro {
     vencedor: c.vencedor,
     arquivado: c.arquivado,
     lista_desde: c.lista_desde,
+    criado_em: c.criado_em,
     etiquetas: c.card_etiquetas.map((e) => e.etiqueta_id),
     veiculacoes: c.veiculacoes,
     anexos: c.anexos[0]?.count ?? 0,

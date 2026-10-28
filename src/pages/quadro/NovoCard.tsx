@@ -34,6 +34,14 @@ export function NovoCard({
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const primeiro = useRef<HTMLInputElement>(null)
+  const caixa = useRef<HTMLFormElement>(null)
+
+  // clicar em qualquer lugar fora do formulário fecha
+  useEffect(() => {
+    const fora = (e: PointerEvent) => caixa.current && !caixa.current.contains(e.target as Node) && onFechar()
+    document.addEventListener('pointerdown', fora)
+    return () => document.removeEventListener('pointerdown', fora)
+  }, [onFechar])
 
   const oferta = ofertaFixa ?? ofertas.find((o) => o.id === ofertaId) ?? null
 
@@ -99,6 +107,7 @@ export function NovoCard({
 
   return (
     <form
+      ref={caixa}
       onSubmit={criar}
       onKeyDown={(e) => e.key === 'Escape' && onFechar()}
       className="space-y-2 rounded-control border border-line bg-surface p-2 shadow-sm"
