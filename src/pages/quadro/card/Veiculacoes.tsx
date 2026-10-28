@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Dica, Popover } from '../../../components/ds'
 import { useToast } from '../../../components/Toast'
 import { CATEGORIAS_REJEICAO, extrairIdAnuncio, type CardDetalhe, type VeiculacaoDetalhe } from '../../../lib/card'
+import { listarAnunciosDaConta, type AnuncioMeta } from '../../../lib/metricas'
 import { STATUS_VEICULACAO, type ContaQuadro, type StatusVeiculacao } from '../../../lib/quadro'
 import { ops } from '../../../lib/supabase'
 import { botaoPequeno, campoPequeno, ICONES, TituloSecao, type Atualizar, type Salvar } from './comum'
@@ -126,7 +127,7 @@ function LinhaVeiculacao({
   }
 
   /** Aceita o número ou um link do Gerenciador; avisa em qual card o ID já está, se repetir. */
-  async function salvarId(texto: string) {
+  async function salvarId(texto: string, nomeNoMeta?: string) {
     const t = texto.trim()
     if (!t) {
       if (v.meta_ad_id) await mudar({ meta_ad_id: null })
@@ -145,7 +146,7 @@ function LinhaVeiculacao({
       toast('ruim', outro.card_id === card.id ? 'Esse ID de anúncio já está em outra conta deste card.' : `Esse ID de anúncio já está no card ${nome ?? ''}.`)
       return setIdAnuncio(v.meta_ad_id ?? '')
     }
-    await mudar({ meta_ad_id: id })
+    await mudar(nomeNoMeta ? { meta_ad_id: id, nome_no_meta: nomeNoMeta } : { meta_ad_id: id })
   }
 
   const rejeitado = v.status === 'rejeitado'
@@ -205,6 +206,13 @@ function LinhaVeiculacao({
             placeholder="Número ou link do anúncio"
             className={`${campoPequeno} mt-0.5 font-mono text-ink`}
           />
+          {conta?.meta_ad_account_id && (
+            <EscolherAnuncio
+              contaId={v.conta_id}
+              sugestao={card.tipo === 'ad' ? `ad${card.ad_num}-h${card.hook_num}-m${card.var_num}` : ''}
+              onEscolher={(a) => salvarId(a.id, a.nome)}
+            />
+          )}
         </div>
         <label className="text-xs text-muted">
           Data do status
@@ -249,6 +257,81 @@ function LinhaVeiculacao({
             </select>
           </label>
         </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Escolher o anúncio na lista da Meta (em vez de colar o ID). A busca já começa
+ * com AD/H/M do card (ex.: "ad1-h1-m2"), que costuma estar no nome do anúncio;
+ * é só uma sugestão: quem escolhe é a pessoa.
+ */
+function EscolherAnuncio({ contaId, sugestao, onEscolher }: { contaId: string; sugestao: string; onEscolher: (a: AnuncioMeta) => void }) {
+  return (
+    <Popover
+      titulo="Escolher anúncio na Meta"
+      largura="w-96 max-w-[calc(100vw-1rem)]"
+      gatilho={(alternar) => (
+        <button type="button" onClick={alternar} className="mt-1 text-[11px] text-info hover:underline">
+          Escolher na lista da Meta
+        </button>
+      )}
+    >
+      {(fechar) => (
+        <ListaAnuncios
+          contaId={contaId}
+          sugestao={sugestao}
+          onEscolher={(a) => {
+            fechar()
+            onEscolher(a)
+          }}
+        />
+      )}
+    </Popover>
+  )
+}
+
+function ListaAnuncios({ contaId, sugestao, onEscolher }: { contaId: string; sugestao: string; onEscolher: (a: AnuncioMeta) => void }) {
+  const [anuncios, setAnuncios] = useState<AnuncioMeta[] | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [busca, setBusca] = useState(sugestao)
+
+  useEffect(() => {
+    listarAnunciosDaConta(contaId).then(setAnuncios, (e: Error) => setErro(e.message))
+  }, [contaId])
+
+  if (erro) return <p className="text-sm text-bad">{erro}</p>
+  if (!anuncios) return <p className="text-sm text-muted">Buscando os anúncios da conta na Meta…</p>
+
+  const termo = busca.trim().toLowerCase()
+  const filtrados = anuncios.filter((a) => !termo || a.nome.toLowerCase().includes(termo) || a.id.includes(termo))
+
+  return (
+    <div className="space-y-2">
+      <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou ID" className={campoPequeno} />
+      {filtrados.length === 0 ? (
+        <p className="text-sm text-muted">
+          Nenhum anúncio com "{busca}".{' '}
+          {busca && (
+            <button onClick={() => setBusca('')} className="text-info hover:underline">
+              Ver todos
+            </button>
+          )}
+        </p>
+      ) : (
+        <ul className="max-h-72 space-y-0.5 overflow-y-auto">
+          {filtrados.slice(0, 100).map((a) => (
+            <li key={a.id}>
+              <button onClick={() => onEscolher(a)} className="w-full rounded-md px-2 py-1.5 text-left hover:bg-surface-2">
+                <span className="block truncate text-sm">{a.nome}</span>
+                <span className="block text-[11px] text-muted">
+                  <span className="font-mono">{a.id}</span> · {a.status.toLowerCase()}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

@@ -3,7 +3,7 @@
 ## Situação atual (28/10/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 006 rodadas pela usuária. **Próxima: 007.**
+- **Banco:** migrations 001 a 006 rodadas pela usuária; 007 (métricas) criada. **Próxima: 008.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage.
 - **Testado e aprovado pela usuária:**
   - etapa 1: login e menu;
@@ -268,3 +268,41 @@ Família = cards Ad da mesma oferta com o mesmo AD. H = hook, M = variação do 
   - O card aberto fica destacado, e clicar abre o outro card.
 - **"Veio de: AD1-H1-M1 · motivo"** no cabeçalho, clicável.
 - **Componente reaproveitado:** `PilulasContas` saiu do `Cartao.tsx`, para a frente do card e a família usarem as mesmas pílulas.
+
+## Etapa 6: métricas por anúncio (28/10/2026)
+
+Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo o que ele recomendou (leituras do dashboard registradas no CLAUDE.md).
+
+**Migration 007 (`007_metricas.sql`):**
+- `ops.importar_contas_dashboard()`: copia de `public.meta_ad_accounts` as contas que faltam, só número e nome. "CONTA 02 - BM 01 - Henrique" vira nome "Conta 02" e BM "BM 01 - Henrique", com apelido no primeiro "C{n}" livre. A migration já roda a importação (21 contas). Botão "Importar do dashboard" em Configurações → Contas de anúncio.
+- `ops.vendas_por_anuncio(ids, desde)`: lê `public.purchases` por `ad_id` e devolve só quantidade e valores agregados (por anúncio, tipo de oferta e status). Dia da venda no fuso de Brasília, valores em reais. `canceled` (cartão recusado) fica de fora.
+- `ops.metricas_anuncio_dia` (chave anúncio + dia):
+  - gasto na moeda da conta, cotação e gasto em reais (sem IOF);
+  - impressões, cliques, cliques no link e compras atribuídas pela Meta (uma só fonte: omni_purchase, purchase ou pixel);
+  - visualizações de 3 s (`video_view`) e ThruPlays.
+- `ops.metricas_buscas`: cada busca na Meta (período, contas, linhas, falhas).
+- Próxima migration: 008.
+
+**Funções no Vercel (`api/`, mesmo padrão do financeiro, sempre com o JWT do usuário e nunca a service role):**
+- `POST /api/meta-metricas`: `/insights` com `level=ad`, por dia, nas contas ativas com ID, 4 contas por vez.
+  - Período: últimos 3 dias (a Meta ainda ajusta os recentes); na primeira vez ou com `completo`, 90 dias.
+  - Contas em dólar convertidas pela PTAX. A moeda vem da Meta: a "CONTA 03 - BM 01 - Cecilia" é USD sem "[Dólar]" no nome.
+- `GET /api/meta-anuncios?conta=`: lista os anúncios da conta (id, nome, status), do mais novo para o mais antigo.
+- Chave: `META_ADS_TOKEN` (a mesma do financeiro) no `.env.local` e no Vercel. Opcional: `META_API_VERSION` (padrão v23.0).
+- O `vite.config.ts` atende `/api` no `npm run dev` (o mesmo plugin do financeiro). O `vercel.json` dá até 300 s às funções.
+- Testado direto na Meta com a chave (só leitura): os campos pedidos e a lista de anúncios responderam.
+
+**Na tela:**
+- **Seção "Métricas" no card (`card/Metricas.tsx`):**
+  - período de 7 dias, 30 dias ou tudo (lembrado);
+  - cartões de Gasto, Faturamento, ROAS, Vendas, CPA, CPM, CTR (link) e Hook rate (hold rate embaixo), cada um com Dica;
+  - "Ver por conta" (uma linha por veiculação);
+  - "Meta atualizada em …" e "Atualizar agora";
+  - sem nenhum ID de anúncio no card, mostra o aviso para preencher.
+- **Definições:**
+  - faturamento = vendas aprovadas com o ID do anúncio, somando principal, upsell e downsell;
+  - vendas e CPA = só o produto principal;
+  - reembolso e chargeback aparecem à parte;
+  - ROAS = faturamento ÷ gasto sem IOF.
+- **Veiculação:** "Escolher na lista da Meta" abaixo do campo do ID. A lista vem já filtrada pelo AD/H/M do card (ex.: `ad27-h1-m1`), mas isso é só sugestão de busca: quem escolhe é a pessoa. Grava o ID e o `nome_no_meta`.
+- **Atualização automática:** ao abrir Quadros, se a última busca tem mais de 1 hora, busca de novo em segundo plano.

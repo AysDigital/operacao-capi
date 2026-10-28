@@ -24,6 +24,17 @@ export function ContasAnuncio() {
   )
   const [editando, setEditando] = useState<Linha | 'nova' | null>(null)
   const [mudando, setMudando] = useState<string | null>(null)
+  const [importando, setImportando] = useState(false)
+
+  /** Traz do dashboard de vendas as contas que ainda não estão aqui (só número e nome). */
+  async function importar() {
+    setImportando(true)
+    const { data, error } = await ops().rpc('importar_contas_dashboard')
+    setImportando(false)
+    if (error) return toast('ruim', mensagemErro(error))
+    toast('bom', data ? `${data} conta(s) importada(s) do dashboard.` : 'Nenhuma conta nova no dashboard.')
+    recarregar()
+  }
 
   async function mudarAtiva(c: Linha, ativa: boolean) {
     setMudando(c.id)
@@ -44,7 +55,10 @@ export function ContasAnuncio() {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        <Botao variante="secundario" onClick={importar} disabled={importando}>
+          {importando ? 'Importando…' : 'Importar do dashboard'}
+        </Botao>
         <Botao onClick={() => setEditando('nova')}>Nova conta</Botao>
       </div>
 

@@ -4,6 +4,7 @@ import { Aviso, BolinhaCor, Carregando, Vazio } from '../../components/ds'
 import { Botao } from '../../components/ui'
 import type { Etiqueta } from '../../lib/cadastros'
 import { gravarFiltros, gravarLocal, lerFiltros, lerLocal, type ContaQuadro, type Filtros, type Lista, type OfertaQuadro } from '../../lib/quadro'
+import { manterMetricasFrescas } from '../../lib/metricas'
 import { ops } from '../../lib/supabase'
 import { Quadro } from './Quadro'
 
@@ -20,7 +21,7 @@ async function buscarBase(): Promise<Base> {
   const [listas, ofertas, contas, etiquetas] = await Promise.all([
     ops().from('listas').select('id, nome, ordem, cor, arquivada').order('ordem'),
     ops().from('ofertas').select('id, nome, codigo, idioma, cor, status').order('nome'),
-    ops().from('contas_anuncio').select('id, apelido, nome, bm_nome, ativa'),
+    ops().from('contas_anuncio').select('id, apelido, nome, bm_nome, ativa, meta_ad_account_id'),
     ops().from('etiquetas').select('id, nome, cor').order('nome'),
   ])
   const erro = listas.error ?? ofertas.error ?? contas.error ?? etiquetas.error
@@ -81,6 +82,7 @@ export function Quadros() {
 
   useEffect(() => {
     recarregarBase()
+    manterMetricasFrescas()
   }, [recarregarBase])
 
   const ofertaId = id === 'todas' ? null : id

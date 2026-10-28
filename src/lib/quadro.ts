@@ -4,7 +4,7 @@ import { ops } from './supabase'
 
 export type Lista = { id: string; nome: string; ordem: number; cor: string | null; arquivada: boolean }
 export type OfertaQuadro = { id: string; nome: string; codigo: string; idioma: Idioma; cor: string | null; status: StatusOferta }
-export type ContaQuadro = { id: string; apelido: string; nome: string; bm_nome: string | null; ativa: boolean }
+export type ContaQuadro = { id: string; apelido: string; nome: string; bm_nome: string | null; ativa: boolean; meta_ad_account_id: string | null }
 export type TipoCard = 'ad' | 'vsl' | 'outro'
 export type StatusVeiculacao = 'nao_subido' | 'em_analise' | 'rodando' | 'rejeitado' | 'pausado'
 

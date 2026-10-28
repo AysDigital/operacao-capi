@@ -7,11 +7,14 @@ Usuários: May e Luciano.
 - O banco é o MESMO projeto Supabase do dashboard de vendas (em produção) e do financeiro (schema `fin`).
 - Todo o sistema da operação vive no schema `ops`.
 - Nunca criar, alterar, apagar ou escrever nada fora do schema `ops` (tabelas, views, funções, triggers, políticas, publicações, jobs).
-- Os schemas `public` e `fin` não são usados por este app. Qualquer leitura deles precisa de autorização.
+- O schema `fin` não é usado por este app. Do `public` (dashboard de vendas), só as leituras autorizadas abaixo.
 - **Exceções autorizadas pela usuária (fora do schema `ops`):**
   - publicação `supabase_realtime`: tabelas `ops.cards` e `ops.veiculacoes` (ativadas por ela no painel em 28/10/2026, etapa 3);
   - Storage (autorizado em 28/10/2026, migration 005): bucket privado `operacao` e as políticas `operacao_*` em `storage.objects`, todas restritas a esse bucket. Imagens ficam em `cards/{id do card}/` e são guardadas no banco como `storage:{caminho}`;
-  - qualquer outro objeto fora do `ops` precisa de nova autorização.
+  - leitura do dashboard (autorizada em 28/10/2026, migration 007), sempre por funções `security definer` do `ops` que conferem `ops.is_membro()`:
+    - `public.meta_ad_accounts`: só número e nome da conta (`ops.importar_contas_dashboard()`), **nunca** `ads_token`;
+    - `public.purchases`: só valores agregados por anúncio (`ops.vendas_por_anuncio()`), **nunca** e-mail, telefone ou outro dado do comprador;
+  - qualquer outro objeto fora do `ops`, ou outra leitura do `public`, precisa de nova autorização.
 - Acesso: só quem está em `ops.membros` (ativo) lê e escreve (`ops.is_membro()`). Estar logado não basta, porque o Auth é compartilhado com o dashboard.
 
 ## Migrations
@@ -29,6 +32,7 @@ Usuários: May e Luciano.
 - Datas guardadas em UTC e exibidas em `America/Sao_Paulo`.
 
 ## Segredos
+- A chave da Meta é a variável `META_ADS_TOKEN` (a mesma do financeiro), só no servidor (`api/`), no `.env.local` e no Vercel.
 - Nunca colocar chaves, senhas ou e-mails pessoais no código.
 - Segredos ficam em variáveis de ambiente (`.env.local`, que não vai para o Git).
 

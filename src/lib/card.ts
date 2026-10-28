@@ -10,6 +10,7 @@ export type VeiculacaoDetalhe = {
   conta_id: string
   status: StatusVeiculacao
   meta_ad_id: string | null
+  nome_no_meta: string | null
   data_status: string
   motivo_rejeicao: string | null
   categoria_rejeicao: string | null
@@ -52,7 +53,7 @@ export async function buscarCardDetalhe(id: string): Promise<CardDetalhe | null>
        parent_card_id, motivo_versao, origem:parent_card_id(id, nome, ad_num, hook_num, var_num),
        card_etiquetas(etiqueta_id), card_membros(user_id),
        anexos(id, titulo, url, ordem),
-       veiculacoes(id, conta_id, status, meta_ad_id, data_status, motivo_rejeicao, categoria_rejeicao),
+       veiculacoes(id, conta_id, status, meta_ad_id, nome_no_meta, data_status, motivo_rejeicao, categoria_rejeicao),
        checklists(id, titulo, ordem, checklist_itens(id, checklist_id, texto, feito, ordem))`,
     )
     .eq('id', id)

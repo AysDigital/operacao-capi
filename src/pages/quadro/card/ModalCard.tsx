@@ -14,6 +14,7 @@ import { Checklists } from './Checklists'
 import { Avatar, botaoAcao, campoPequeno, ICONES, TituloSecao, type Atualizar, type Salvar } from './comum'
 import { ConfirmarExclusaoCard } from './Exclusoes'
 import { Descricao } from './Texto'
+import { Metricas } from './Metricas'
 import { Veiculacoes } from './Veiculacoes'
 import { LinhaOrigem, ModalDuplicar, ModalGerarVariacoes, ModalNovaVersao, SecaoFamilia } from './Versoes'
 
@@ -160,6 +161,7 @@ export function ModalCard({
             <Checklists card={card} salvar={salvar} atualizar={atualizar} />
             <Anexos card={card} salvar={salvar} atualizar={atualizar} pedido={pedidoAnexo} />
             <Veiculacoes card={card} contas={contas} salvar={salvar} atualizar={atualizar} />
+            <Metricas card={card} contas={contas} versao={versao} />
             <SecaoFamilia card={card} listas={listas} contas={contas} versao={versao} onAbrir={onAbrirCard} />
           </div>
 
