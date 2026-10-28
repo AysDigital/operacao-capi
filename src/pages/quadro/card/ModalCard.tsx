@@ -5,6 +5,7 @@ import { useToast } from '../../../components/Toast'
 import { Botao, BotaoExcluir } from '../../../components/ui'
 import { mensagemErro, PALETA, soSigla, type Etiqueta } from '../../../lib/cadastros'
 import { buscarCardDetalhe, prazoCurto, situacaoPrazo, type CardDetalhe, type Membro } from '../../../lib/card'
+import { diaBrasilia } from '../../../lib/format'
 import type { ContaQuadro, Lista, OfertaQuadro } from '../../../lib/quadro'
 import { ops } from '../../../lib/supabase'
 import { Anexos } from './Anexos'
@@ -466,26 +467,13 @@ function BarraAcoes({
         )}
       >
         {(fechar) => (
-          <div className="space-y-2">
-            <input
-              type="date"
-              value={card.prazo ?? ''}
-              onChange={(e) => salvar(ops().from('cards').update({ prazo: e.target.value || null }).eq('id', card.id))}
-              className={campoPequeno}
-              aria-label="Prazo"
-            />
-            {card.prazo && (
-              <button
-                onClick={() => {
-                  fechar()
-                  salvar(ops().from('cards').update({ prazo: null }).eq('id', card.id))
-                }}
-                className="w-full rounded-control px-3 py-1.5 text-sm text-bad hover:bg-bad-soft"
-              >
-                Remover prazo
-              </button>
-            )}
-          </div>
+          <EditorPrazo
+            atual={card.prazo}
+            onDefinir={(prazo) => {
+              fechar()
+              salvar(ops().from('cards').update({ prazo }).eq('id', card.id))
+            }}
+          />
         )}
       </Popover>
 
@@ -528,6 +516,55 @@ function BarraAcoes({
       <button onClick={onAnexo} className={botaoAcao}>
         <Icone d={ICONES.anexo} /> Anexo
       </button>
+    </div>
+  )
+}
+
+/**
+ * Prazo: atalhos (hoje, amanhã...) ou uma data. Começa na data de hoje e só grava
+ * ao clicar em "Definir" ou apertar Enter.
+ */
+function EditorPrazo({ atual, onDefinir }: { atual: string | null; onDefinir: (prazo: string | null) => void }) {
+  const [data, setData] = useState(atual ?? diaBrasilia())
+  const atalhos: [string, number][] = [
+    ['Hoje', 0],
+    ['Amanhã', 1],
+    ['Em 3 dias', 3],
+    ['Em 1 semana', 7],
+  ]
+  const valida = /^20\d{2}-\d{2}-\d{2}$/.test(data)
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-1">
+        {atalhos.map(([rotulo, dias]) => (
+          <button key={rotulo} onClick={() => onDefinir(diaBrasilia(dias))} className="rounded-md bg-surface-2 px-2 py-1.5 text-xs hover:bg-line/70">
+            {rotulo}
+          </button>
+        ))}
+      </div>
+      <input
+        type="date"
+        value={data}
+        min="2020-01-01"
+        max="2099-12-31"
+        onChange={(e) => setData(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && valida && onDefinir(data)}
+        className={campoPequeno}
+        aria-label="Data do prazo"
+      />
+      <button
+        onClick={() => onDefinir(data)}
+        disabled={!valida}
+        className="w-full rounded-control bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-40"
+      >
+        Definir prazo
+      </button>
+      {atual && (
+        <button onClick={() => onDefinir(null)} className="w-full rounded-control px-3 py-1.5 text-sm text-bad hover:bg-bad-soft">
+          Remover prazo
+        </button>
+      )}
     </div>
   )
 }

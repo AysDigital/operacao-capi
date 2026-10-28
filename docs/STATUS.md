@@ -182,3 +182,10 @@ Pedidas pela usuária depois de testar a etapa 3 (todos os 5 testes ok).
   - O banco também impede excluir lista com cards.
 
 **Quadro:** a frente do card mostra o prazo (amarelo hoje/amanhã, vermelho vencido). Os dados do quadro passaram a trazer `prazo` e o `meta_ad_id` das veiculações, usado na confirmação de exclusão.
+
+**Ajustes depois do teste da usuária (28/10/2026, sem migration):**
+- **Prazo:** começa na data de hoje, tem atalhos (Hoje, Amanhã, Em 3 dias, Em 1 semana) e só grava em "Definir prazo" ou com Enter. Antes gravava a cada tecla, e o ano saía errado.
+- **Data do status da veiculação:** só grava ao sair do campo, pelo mesmo motivo. As duas datas aceitam apenas anos 20xx.
+- **Editor de texto:** sem o botão "Link" (links colados continuam virando link).
+- **ID do anúncio:** dica ⓘ explicando onde achar (link com `selected_ad_ids=` ou a coluna "ID do anúncio").
+- **Pendente de decisão da usuária:** colar imagem nos comentários, que precisa de um bucket no Supabase Storage (fora do schema `ops`).

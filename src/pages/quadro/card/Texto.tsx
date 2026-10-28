@@ -120,9 +120,6 @@ export function EditorTexto({
         <button type="button" className={botao} onMouseDown={semPerderFoco(lista)} title="Lista">
           • Lista
         </button>
-        <button type="button" className={botao} onMouseDown={semPerderFoco(() => envolver('[', '](https://)', 'texto do link'))} title="Link">
-          Link
-        </button>
       </div>
       <textarea
         ref={ref}

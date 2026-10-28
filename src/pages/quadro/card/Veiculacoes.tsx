@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Popover } from '../../../components/ds'
+import { Dica, Popover } from '../../../components/ds'
 import { useToast } from '../../../components/Toast'
 import { CATEGORIAS_REJEICAO, extrairIdAnuncio, type CardDetalhe, type VeiculacaoDetalhe } from '../../../lib/card'
 import { STATUS_VEICULACAO, type ContaQuadro, type StatusVeiculacao } from '../../../lib/quadro'
@@ -13,6 +13,19 @@ const COR_STATUS: Record<StatusVeiculacao, string> = {
   rejeitado: 'border-bad',
   pausado: 'border-line',
 }
+
+const AJUDA_ID = (
+  <>
+    <span className="block font-medium">Onde achar, no Gerenciador de Anúncios (aba Anúncios):</span>
+    <span className="mt-1 block">
+      <strong>Pelo link:</strong> marque a caixinha do anúncio (ou abra para editar) e copie o endereço da barra do navegador. Ele contém
+      "selected_ad_ids=" seguido do número. Cole o link inteiro aqui: o app separa o ID sozinho.
+    </span>
+    <span className="mt-1 block">
+      <strong>Pelo número:</strong> em Colunas → Personalizar colunas, ative "ID do anúncio" e copie o número da linha do anúncio.
+    </span>
+  </>
+)
 
 /** Data (dia) em Brasília para o campo de data, a partir do timestamp do banco. */
 const diaDe = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso))
@@ -104,6 +117,8 @@ function LinhaVeiculacao({
 
   useEffect(() => setIdAnuncio(v.meta_ad_id ?? ''), [v.meta_ad_id])
   useEffect(() => setMotivo(v.motivo_rejeicao ?? ''), [v.motivo_rejeicao])
+  const [data, setData] = useState(diaDe(v.data_status))
+  useEffect(() => setData(diaDe(v.data_status)), [v.data_status])
 
   const mudar = (campos: Partial<VeiculacaoDetalhe>) => {
     atualizar((c) => ({ ...c, veiculacoes: c.veiculacoes.map((x) => (x.id === v.id ? { ...x, ...campos } : x)) }))
@@ -172,9 +187,12 @@ function LinhaVeiculacao({
             ))}
           </select>
         </label>
-        <label className="text-xs text-muted">
-          ID do anúncio no Meta
+        <div className="text-xs text-muted">
+          <Dica conteudo={AJUDA_ID} lado="centro">
+            <span>ID do anúncio no Meta</span>
+          </Dica>
           <input
+            aria-label="ID do anúncio no Meta"
             value={idAnuncio}
             onChange={(e) => setIdAnuncio(e.target.value)}
             onPaste={(e) => {
@@ -187,13 +205,16 @@ function LinhaVeiculacao({
             placeholder="Número ou link do anúncio"
             className={`${campoPequeno} mt-0.5 font-mono text-ink`}
           />
-        </label>
+        </div>
         <label className="text-xs text-muted">
           Data do status
           <input
             type="date"
-            value={diaDe(v.data_status)}
-            onChange={(e) => e.target.value && mudar({ data_status: `${e.target.value}T12:00:00-03:00` })}
+            value={data}
+            min="2020-01-01"
+            max="2099-12-31"
+            onChange={(e) => setData(e.target.value)}
+            onBlur={() => /^20\d{2}-\d{2}-\d{2}$/.test(data) && data !== diaDe(v.data_status) ? mudar({ data_status: `${data}T12:00:00-03:00` }) : setData(diaDe(v.data_status))}
             className={`${campoPequeno} mt-0.5 text-ink`}
           />
         </label>
