@@ -8,7 +8,7 @@ export type ContaQuadro = { id: string; apelido: string; nome: string; bm_nome: 
 export type TipoCard = 'ad' | 'vsl' | 'outro'
 export type StatusVeiculacao = 'nao_subido' | 'em_analise' | 'rodando' | 'rejeitado' | 'pausado'
 
-export type Veiculacao = { conta_id: string; status: StatusVeiculacao; data_status: string }
+export type Veiculacao = { conta_id: string; status: StatusVeiculacao; data_status: string; meta_ad_id: string | null }
 
 export type CardQuadro = {
   id: string
@@ -21,6 +21,7 @@ export type CardQuadro = {
   arquivado: boolean
   lista_desde: string
   criado_em: string
+  prazo: string | null
   etiquetas: string[]
   veiculacoes: Veiculacao[]
   anexos: number
@@ -53,8 +54,8 @@ export const ORDENACOES: { nome: string; comparar: (a: CardQuadro, b: CardQuadro
 /** Listas onde o tempo parado não é problema (sem destaque amarelo/vermelho). */
 export const LISTAS_SEM_PRAZO = ['Standby', 'Em veiculação', 'Rejeitado']
 
-const CAMPOS_CARD = `id, oferta_id, lista_id, posicao, tipo, nome, vencedor, arquivado, lista_desde, criado_em,
-  card_etiquetas(etiqueta_id), veiculacoes(conta_id, status, data_status),
+const CAMPOS_CARD = `id, oferta_id, lista_id, posicao, tipo, nome, vencedor, arquivado, lista_desde, criado_em, prazo,
+  card_etiquetas(etiqueta_id), veiculacoes(conta_id, status, data_status, meta_ad_id),
   anexos(count), comentarios(count), checklists(checklist_itens(feito))`
 
 type CardBanco = Omit<CardQuadro, 'etiquetas' | 'veiculacoes' | 'anexos' | 'comentarios' | 'checklist'> & {
@@ -78,6 +79,7 @@ function converter(c: CardBanco): CardQuadro {
     arquivado: c.arquivado,
     lista_desde: c.lista_desde,
     criado_em: c.criado_em,
+    prazo: c.prazo,
     etiquetas: c.card_etiquetas.map((e) => e.etiqueta_id),
     veiculacoes: c.veiculacoes,
     anexos: c.anexos[0]?.count ?? 0,

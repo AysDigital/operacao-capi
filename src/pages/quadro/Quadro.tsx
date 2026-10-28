@@ -14,8 +14,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Aviso, Modal } from '../../components/ds'
-import { Botao } from '../../components/ui'
+import { Aviso } from '../../components/ds'
 import { useToast } from '../../components/Toast'
 import { mensagemErro, type Etiqueta } from '../../lib/cadastros'
 import {
@@ -35,6 +34,8 @@ import {
 } from '../../lib/quadro'
 import { ops, supabase } from '../../lib/supabase'
 import { BarraFiltros } from './BarraFiltros'
+import { ConfirmarExclusaoCard } from './card/Exclusoes'
+import { ModalCard } from './card/ModalCard'
 import { CartaoArrastavel, CartaoFrente, type Contexto } from './Cartao'
 import { MenuLista, type AcaoLista } from './MenuLista'
 import { NovaLista } from './NovaLista'
@@ -52,6 +53,8 @@ export function Quadro({
   filtros,
   onFiltros,
   onListasMudaram,
+  cardAberto,
+  onAbrirCard,
 }: {
   /** null = todas as ofertas */
   ofertaId: string | null
@@ -63,6 +66,9 @@ export function Quadro({
   onFiltros: (f: Filtros) => void
   /** recarrega as listas (criou, arquivou ou restaurou uma) */
   onListasMudaram: () => void
+  /** card aberto no modal (vem da URL: ?card=) */
+  cardAberto: string | null
+  onAbrirCard: (id: string | null) => void
 }) {
   const toast = useToast()
   const [cards, setCards] = useState<CardQuadro[] | null>(null)
@@ -71,7 +77,8 @@ export function Quadro({
   const [agora, setAgora] = useState(() => Date.now())
   const [recolhidas, setRecolhidas] = useState<string[]>(() => lerLocal('listas_recolhidas', []))
   const [novoEm, setNovoEm] = useState<string | null>(null)
-  const [aberto, setAberto] = useState<string | null>(null)
+  const [menuCard, setMenuCard] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [excluirCard, setExcluirCard] = useState<CardQuadro | null>(null)
   const [verArquivados, setVerArquivados] = useState(false)
   // durante o arrasto: a ordem provisória (ids por lista) e o card arrastado
   const [arrasto, setArrasto] = useState<Record<string, string[]> | null>(null)
@@ -97,6 +104,17 @@ export function Quadro({
   useEffect(() => {
     carregar()
   }, [carregar])
+
+  // Recarga agrupada: várias gravações seguidas (no card aberto, por exemplo) viram uma só.
+  const carregarRef = useRef(carregar)
+  carregarRef.current = carregar
+  const recarregarLogo = useMemo(() => {
+    let espera: ReturnType<typeof setTimeout> | undefined
+    return () => {
+      clearTimeout(espera)
+      espera = setTimeout(() => carregarRef.current(), 400)
+    }
+  }, [])
 
   // Tempo real: qualquer mudança em cards ou veiculações recarrega o quadro (agrupando rajadas).
   useEffect(() => {
@@ -169,7 +187,8 @@ export function Quadro({
   }
 
   // soltar um card logo depois de arrastar não conta como clique
-  const abrir = useCallback((id: string) => Date.now() - fimDoArrasto.current > 250 && setAberto(id), [])
+  const abrir = useCallback((id: string) => Date.now() - fimDoArrasto.current > 250 && onAbrirCard(id), [onAbrirCard])
+  const abrirMenu = useCallback((id: string, x: number, y: number) => setMenuCard({ id, x, y }), [])
 
   /** Fim da lista, considerando todos os cards dela (inclusive os escondidos pelo filtro). */
   const proximaPosicao = (listaId: string) =>
@@ -197,6 +216,8 @@ export function Quadro({
       } else if (acao.tipo === 'arquivar_cards') {
         ;({ error } = await ops().from('cards').update({ arquivado: true }).in('id', ids))
         if (!error) toast('bom', `${plural(ids.length, 'card arquivado', 'cards arquivados')}.`)
+      } else if (acao.tipo === 'lista_excluida') {
+        onListasMudaram()
       } else {
         ;({ error } = await ops().from('listas').update({ arquivada: true }).eq('id', listaId))
         if (!error) {
@@ -211,7 +232,6 @@ export function Quadro({
   )
 
   async function arquivarCard(c: CardQuadro, arquivado: boolean) {
-    setAberto(null)
     setCards((cs) => (cs ?? []).map((x) => (x.id === c.id ? { ...x, arquivado } : x)).filter((x) => filtros.arquivados || !x.arquivado))
     const { error } = await ops().from('cards').update({ arquivado }).eq('id', c.id)
     if (error) {
@@ -332,7 +352,7 @@ export function Quadro({
   }
 
   // ---- tela ----------------------------------------------------------------
-  const cardAberto = aberto ? porId.get(aberto) : undefined
+  const cardDoMenu = menuCard ? porId.get(menuCard.id) : undefined
   const cardAtivo = ativo ? porId.get(ativo) : undefined
 
   return (
@@ -373,6 +393,7 @@ export function Quadro({
               recolhida={recolhidas.includes(l.id)}
               onRecolher={alternarRecolhida}
               onAbrir={abrir}
+              onMenu={abrirMenu}
               novoAberto={novoEm === l.id}
               onNovo={setNovoEm}
               ativas={ativas}
@@ -403,17 +424,50 @@ export function Quadro({
       </DndContext>
 
       {cardAberto && (
-        <Modal
-          titulo={cardAberto.nome}
-          onFechar={() => setAberto(null)}
-          rodape={
-            <Botao variante="secundario" onClick={() => arquivarCard(cardAberto, !cardAberto.arquivado)} className="ml-auto">
-              {cardAberto.arquivado ? 'Restaurar card' : 'Arquivar card'}
-            </Botao>
+        <ModalCard
+          key={cardAberto}
+          cardId={cardAberto}
+          listas={listas}
+          ofertas={ofertas}
+          contas={contas}
+          etiquetas={etiquetas}
+          mostrarOferta={ofertaId === null}
+          onFechar={() => onAbrirCard(null)}
+          onMudou={recarregarLogo}
+          onBaseMudou={onListasMudaram}
+        />
+      )}
+
+      {menuCard && cardDoMenu && (
+        <MenuCard
+          x={menuCard.x}
+          y={menuCard.y}
+          arquivado={cardDoMenu.arquivado}
+          onFechar={() => setMenuCard(null)}
+          onAbrir={() => onAbrirCard(cardDoMenu.id)}
+          onArquivar={() => arquivarCard(cardDoMenu, !cardDoMenu.arquivado)}
+          onExcluir={() => setExcluirCard(cardDoMenu)}
+        />
+      )}
+
+      {excluirCard && (
+        <ConfirmarExclusaoCard
+          card={excluirCard}
+          temIdAnuncio={excluirCard.veiculacoes.some((v) => v.meta_ad_id)}
+          onArquivar={
+            excluirCard.arquivado
+              ? undefined
+              : () => {
+                  arquivarCard(excluirCard, true)
+                  setExcluirCard(null)
+                }
           }
-        >
-          <p className="text-sm text-muted">Detalhes na próxima etapa.</p>
-        </Modal>
+          onFechar={() => setExcluirCard(null)}
+          onExcluido={() => {
+            setCards((cs) => cs?.filter((c) => c.id !== excluirCard.id) ?? null)
+            setExcluirCard(null)
+          }}
+        />
       )}
 
       {verArquivados && (
@@ -439,6 +493,7 @@ const Coluna = memo(function Coluna({
   recolhida,
   onRecolher,
   onAbrir,
+  onMenu,
   novoAberto,
   onNovo,
   ativas,
@@ -454,6 +509,7 @@ const Coluna = memo(function Coluna({
   recolhida: boolean
   onRecolher: (id: string) => void
   onAbrir: (id: string) => void
+  onMenu: (id: string, x: number, y: number) => void
   novoAberto: boolean
   onNovo: (id: string | null) => void
   ativas: Lista[]
@@ -509,7 +565,7 @@ const Coluna = memo(function Coluna({
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
             {ids.map((id) => {
               const c = porId.get(id)
-              return c ? <CartaoArrastavel key={id} card={c} ctx={ctx} semPrazo={semPrazo} onAbrir={onAbrir} /> : null
+              return c ? <CartaoArrastavel key={id} card={c} ctx={ctx} semPrazo={semPrazo} onAbrir={onAbrir} onMenu={onMenu} /> : null
             })}
           </SortableContext>
         )}
@@ -524,3 +580,63 @@ const Coluna = memo(function Coluna({
     </section>
   )
 })
+
+/** Menu do clique-direito no card. */
+function MenuCard({
+  x,
+  y,
+  arquivado,
+  onFechar,
+  onAbrir,
+  onArquivar,
+  onExcluir,
+}: {
+  x: number
+  y: number
+  arquivado: boolean
+  onFechar: () => void
+  onAbrir: () => void
+  onArquivar: () => void
+  onExcluir: () => void
+}) {
+  const caixa = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fora = (e: PointerEvent) => !caixa.current?.contains(e.target as Node) && onFechar()
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && onFechar()
+    document.addEventListener('pointerdown', fora)
+    document.addEventListener('keydown', tecla)
+    window.addEventListener('scroll', onFechar, true)
+    return () => {
+      document.removeEventListener('pointerdown', fora)
+      document.removeEventListener('keydown', tecla)
+      window.removeEventListener('scroll', onFechar, true)
+    }
+  }, [onFechar])
+
+  const item = 'block w-full rounded-md px-3 py-1.5 text-left text-sm hover:bg-surface-2'
+  const fazer = (f: () => void) => () => {
+    onFechar()
+    f()
+  }
+
+  return (
+    <div
+      ref={caixa}
+      role="menu"
+      style={{ top: Math.min(y, window.innerHeight - 140), left: Math.min(x, window.innerWidth - 200) }}
+      className="fixed z-40 w-48 rounded-card border border-line bg-surface p-1.5 shadow-lg"
+    >
+      <button role="menuitem" className={item} onClick={fazer(onAbrir)}>
+        Abrir card
+      </button>
+      <button role="menuitem" className={item} onClick={fazer(onArquivar)}>
+        {arquivado ? 'Restaurar' : 'Arquivar'}
+      </button>
+      <div className="my-1 border-t border-line" />
+      <button role="menuitem" className={`${item} text-bad`} onClick={fazer(onExcluir)}>
+        Excluir…
+      </button>
+    </div>
+  )
+}

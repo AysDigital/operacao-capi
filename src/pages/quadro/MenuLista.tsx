@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { ORDENACOES, type Lista } from '../../lib/quadro'
+import { ExcluirLista } from './card/Exclusoes'
 
 export type AcaoLista =
   | { tipo: 'ordenar'; indice: number }
   | { tipo: 'mover'; para: string }
   | { tipo: 'arquivar_cards' }
   | { tipo: 'arquivar_lista' }
+  /** a lista já foi excluída (pelo próprio menu): só recarregar */
+  | { tipo: 'lista_excluida' }
 
-type Tela = 'inicio' | 'ordenar' | 'mover' | 'arquivar_cards' | 'arquivar_lista'
+type Tela = 'inicio' | 'ordenar' | 'mover' | 'arquivar_cards' | 'arquivar_lista' | 'excluir'
 
 const item = 'block w-full rounded-md px-3 py-1.5 text-left text-sm hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent'
 
@@ -105,8 +108,11 @@ export function MenuLista({
               <button className={item} disabled={semCards} onClick={() => setTela('arquivar_cards')}>
                 Arquivar todos os cards…
               </button>
-              <button className={`${item} text-bad`} onClick={() => setTela('arquivar_lista')}>
+              <button className={item} onClick={() => setTela('arquivar_lista')}>
                 Arquivar esta lista…
+              </button>
+              <button className={`${item} text-bad`} onClick={() => setTela('excluir')}>
+                Excluir lista…
               </button>
             </>
           )}
@@ -154,6 +160,12 @@ export function MenuLista({
                   Cancelar
                 </button>
               </div>
+            </div>
+          )}
+
+          {tela === 'excluir' && (
+            <div className="px-3 pb-2">
+              <ExcluirLista lista={lista} destinos={listas} onExcluida={() => fazer({ tipo: 'lista_excluida' })} onCancelar={() => setTela('inicio')} />
             </div>
           )}
 

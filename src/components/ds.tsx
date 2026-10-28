@@ -331,36 +331,62 @@ export function PainelLateral({ titulo, onFechar, children }: { titulo: string; 
   )
 }
 
+/** Janelas abertas, da de baixo para a de cima: o Esc fecha só a de cima. */
+const pilhaModais: object[] = []
+
 /** Janela sobre a tela (formulários de criar/editar). Fecha no Esc, no × e clicando fora. */
 export function Modal({
   titulo,
+  cabecalho,
   onFechar,
   rodape,
+  largura = 'max-w-lg',
   children,
 }: {
   titulo: string
+  /** substitui o título escrito (o `titulo` continua como nome acessível) */
+  cabecalho?: ReactNode
   onFechar: () => void
   rodape?: ReactNode
+  largura?: string
   children: ReactNode
 }) {
+  // Antes de fechar, tira o foco do campo em edição: os campos que salvam "ao sair" salvam.
+  const fechar = useRef(onFechar)
+  fechar.current = () => {
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
+    onFechar()
+  }
+
   useEffect(() => {
-    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && onFechar()
+    const eu = {}
+    pilhaModais.push(eu)
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || pilhaModais[pilhaModais.length - 1] !== eu) return
+      const foco = document.activeElement as HTMLElement | null
+      // Esc dentro de um campo só sai do campo (salvando); o segundo Esc fecha.
+      if (foco && foco.matches('input, textarea, select, [contenteditable]')) return foco.blur()
+      fechar.current()
+    }
     document.addEventListener('keydown', tecla)
-    return () => document.removeEventListener('keydown', tecla)
-  }, [onFechar])
+    return () => {
+      document.removeEventListener('keydown', tecla)
+      pilhaModais.splice(pilhaModais.indexOf(eu), 1)
+    }
+  }, [])
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/30 sm:items-center sm:p-4" onMouseDown={onFechar}>
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/30 sm:items-center sm:p-4" onMouseDown={() => fechar.current()}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-card bg-surface shadow-xl sm:rounded-card"
+        className={`flex max-h-[92vh] w-full ${largura} flex-col rounded-t-card bg-surface shadow-xl sm:rounded-card`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold">{titulo}</h2>
-          <button onClick={onFechar} aria-label="Fechar" className="rounded-control px-2 py-1 text-lg leading-none text-muted hover:bg-surface-2 hover:text-ink">
+          {cabecalho ?? <h2 className="text-lg font-semibold">{titulo}</h2>}
+          <button onClick={() => fechar.current()} aria-label="Fechar" className="rounded-control px-2 py-1 text-lg leading-none text-muted hover:bg-surface-2 hover:text-ink">
             ×
           </button>
         </div>
@@ -446,5 +472,60 @@ export function PilulaCor({ texto, cor, pequena, title }: { texto: ReactNode; co
     >
       {texto}
     </span>
+  )
+}
+
+/**
+ * Balão preso a um botão (escolher etiquetas, prazo...). Posicionado na tela,
+ * fecha ao clicar fora. `gatilho` recebe a função de abrir/fechar.
+ */
+export function Popover({
+  gatilho,
+  titulo,
+  largura = 'w-72',
+  children,
+}: {
+  gatilho: (alternar: (e: React.MouseEvent<HTMLElement>) => void, aberto: boolean) => ReactNode
+  titulo: string
+  largura?: string
+  children: (fechar: () => void) => ReactNode
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const caixa = useRef<HTMLDivElement>(null)
+  const ancora = useRef<HTMLElement | null>(null)
+  const fechar = () => setPos(null)
+
+  useEffect(() => {
+    if (!pos) return
+    const fora = (e: PointerEvent) =>
+      !caixa.current?.contains(e.target as Node) && !ancora.current?.contains(e.target as Node) && fechar()
+    document.addEventListener('pointerdown', fora)
+    return () => document.removeEventListener('pointerdown', fora)
+  }, [pos])
+
+  function alternar(e: React.MouseEvent<HTMLElement>) {
+    if (pos) return fechar()
+    ancora.current = e.currentTarget
+    const r = e.currentTarget.getBoundingClientRect()
+    setPos({ top: Math.min(r.bottom + 6, window.innerHeight - 120), left: Math.max(8, Math.min(r.left, window.innerWidth - 300)) })
+  }
+
+  return (
+    <>
+      {gatilho(alternar, Boolean(pos))}
+      {pos && (
+        <div
+          ref={caixa}
+          role="dialog"
+          aria-label={titulo}
+          style={{ top: pos.top, left: pos.left }}
+          className={`fixed z-50 max-h-[70vh] overflow-y-auto rounded-card border border-line bg-surface p-3 shadow-xl ${largura}`}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <p className="mb-2 text-center text-sm font-medium text-muted">{titulo}</p>
+          {children(fechar)}
+        </div>
+      )}
+    </>
   )
 }

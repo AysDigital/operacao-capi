@@ -3,7 +3,7 @@ import { Link, Navigate, NavLink, useNavigate, useParams, useSearchParams } from
 import { Aviso, BolinhaCor, Carregando, Vazio } from '../../components/ds'
 import { Botao } from '../../components/ui'
 import type { Etiqueta } from '../../lib/cadastros'
-import { gravarFiltros, gravarLocal, lerFiltros, lerLocal, type ContaQuadro, type Lista, type OfertaQuadro } from '../../lib/quadro'
+import { gravarFiltros, gravarLocal, lerFiltros, lerLocal, type ContaQuadro, type Filtros, type Lista, type OfertaQuadro } from '../../lib/quadro'
 import { ops } from '../../lib/supabase'
 import { Quadro } from './Quadro'
 
@@ -38,8 +38,39 @@ async function buscarBase(): Promise<Base> {
 export function Quadros() {
   const { id = 'todas' } = useParams()
   const [params, setParams] = useSearchParams()
-  const busca = params.toString()
+  const cardAberto = params.get('card')
+  // filtros sem o card aberto (é isso que acompanha a troca de quadro)
+  const busca = useMemo(() => {
+    const p = new URLSearchParams(params)
+    p.delete('card')
+    return p.toString()
+  }, [params])
   const filtros = useMemo(() => lerFiltros(new URLSearchParams(busca)), [busca])
+
+  const mudarFiltros = useCallback(
+    (f: Filtros) =>
+      setParams(
+        (atual) => {
+          const p = gravarFiltros(f)
+          const card = atual.get('card')
+          if (card) p.set('card', card)
+          return p
+        },
+        { replace: true },
+      ),
+    [setParams],
+  )
+
+  const abrirCard = useCallback(
+    (cardId: string | null) =>
+      setParams((atual) => {
+        const p = new URLSearchParams(atual)
+        if (cardId) p.set('card', cardId)
+        else p.delete('card')
+        return p
+      }),
+    [setParams],
+  )
   const navegar = useNavigate()
   const [base, setBase] = useState<Base | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -84,8 +115,10 @@ export function Quadros() {
           contas={base.contas}
           etiquetas={base.etiquetas}
           filtros={filtros}
-          onFiltros={(f) => setParams(gravarFiltros(f), { replace: true })}
+          onFiltros={mudarFiltros}
           onListasMudaram={recarregarBase}
+          cardAberto={cardAberto}
+          onAbrirCard={abrirCard}
         />
       ) : (
         <Vazio titulo="Este quadro não existe mais">

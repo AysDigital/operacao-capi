@@ -29,7 +29,7 @@
 - Endereços: https://ops.capimarketing.online (CNAME para o Vercel, HTTPS ok) e https://operacao-capi.vercel.app.
 - Supabase Auth: Site URL e Redirect URLs não foram alteradas (são compartilhadas com o dashboard). Não há recuperação de senha no app; troca de senha é pelo painel do Supabase.
 
-**Próximas etapas (não feitas):** card detalhado; modelos; métricas por `meta_ad_id`.
+**Próximas etapas (não feitas):** modelos; métricas por `meta_ad_id`.
 
 ## Etapa 2: telas de cadastro (27/10/2026)
 
@@ -126,3 +126,59 @@ Pedidas pela usuária depois de testar a etapa 3 (todos os 5 testes ok).
   - a lista arquivada some de todos os quadros, junto com os cards dela;
   - o botão **Arquivados** na barra abre um painel (`PainelArquivados.tsx`) com as listas e os cards arquivados do quadro atual, cada um com "Restaurar".
 - As listas não estão no tempo real: uma lista criada ou arquivada no outro computador aparece ao recarregar a página.
+
+## Etapa 4: card detalhado e exclusões (28/10/2026)
+
+**Migration 004 (`004_card_detalhado_e_exclusoes.sql`):**
+- `cards.prazo` (data).
+- `cards_log` refeito igual ao da 001, mais: prazo definido ou removido, e "perdeu a ligação com a versão de origem (excluída)" no card-filho quando a origem é apagada.
+- `veiculacoes.categoria_rejeicao` só aceita `adulto`, `saude_corpo`, `promessa_resultado`, `atributos_pessoais`, `sensacionalismo`, `antes_depois` e `outro` (`not valid`: não confere linhas antigas).
+- Comentários: todos os membros leem; só o autor cria em seu nome, edita e apaga. `editado_em` é preenchido por gatilho.
+- `ops.esvaziar_lista(de, para)`: move todos os cards da lista (todos os quadros, inclusive arquivados).
+- Exclusão de card: nada a mudar. A 001 já apaga junto anexos, comentários, atividades, veiculações, checklists, etiquetas e membros, e os filhos ficam com `parent_card_id` nulo. Os gatilhos de histórico não gravam nada para card que não existe mais.
+- Próxima migration: 005.
+
+**Modal do card (`src/pages/quadro/card/`):**
+- **Abertura:** abre pela URL (`?card={id}`), então o link pode ser copiado. Fecha no Esc ou clicando fora. Antes de fechar, o campo em edição é salvo. Esc dentro de um campo só sai do campo, e com duas janelas abertas o Esc fecha só a de cima.
+- **Cabeçalho (`ModalCard.tsx`):**
+  - a oferta (seletor no quadro "Todas"; pílula nos outros) e o seletor de lista (move pelo `mover_cards`, para o fim);
+  - no Ad, AD/H/M/formato com prévia do nome, salvos ao sair do campo, com erro em português se repetir;
+  - no VSL/Outro, título editável;
+  - botão de vencedor.
+- **Barra de ações (popovers):**
+  - Etiquetas: marcar e criar nova com cor;
+  - Membros;
+  - Prazo: data e "Remover prazo";
+  - Checklist: cria com título;
+  - Anexo: abre o formulário de anexo.
+- **Resumo** abaixo da barra: membros, etiquetas e prazo (amarelo hoje/amanhã, vermelho vencido).
+- **Descrição (`Texto.tsx`):** formatação simples (`**negrito**`, listas com `-` ou `1.`, `[texto](link)` e links soltos), com botões B / Lista / Link. Salva ao sair do campo. O texto é desenhado como elementos React, sem HTML cru.
+- **Checklists (`Checklists.tsx`):** vários por card, com barra de progresso, título editável e exclusão com confirmação. Nos itens: marcar, editar ao clicar, arrastar pela alça para reordenar e excluir. "Adicionar um item" com Enter mantém aberto.
+- **Anexos (`Anexos.tsx`):**
+  - ícone pelo domínio (Docs, Sheets, Slides, Drive, Figma, Canva, YouTube, Vimeo, Loom, Dropbox, Meta, Notion);
+  - abrem em nova aba;
+  - "+ Script" e "+ AD Finalizado" somem quando o card já tem um com esse título; "+ Outro anexo" tem título livre;
+  - editar, arrastar para reordenar e remover.
+- **Veiculação por conta (`Veiculacoes.tsx`):**
+  - uma linha por conta, com status, ID do anúncio e data do status;
+  - o ID aceita colar um link do Gerenciador: `selected_ad_ids`, `ad_id` etc., ignorando o `act=` da conta. Se o ID já estiver em outro card, avisa qual;
+  - mudar o status sem mexer na data deixa o banco pôr a data de agora; mudar a data grava meio-dia de Brasília;
+  - rejeitado mostra motivo e categoria;
+  - "+ Subir em outra conta" lista só as contas ativas fora do card e entra como "Em análise";
+  - remover pede confirmação.
+- **Comentários e atividade (`Atividade.tsx`):**
+  - caixa de comentário com a mesma formatação; Ctrl+Enter envia;
+  - editar e excluir só os próprios;
+  - "Mostrar detalhes" mistura o histórico em ordem cronológica e fica lembrado.
+- **Rodapé:** Excluir e Arquivar/Restaurar.
+- **Salvamento:** cada campo salva sozinho. Erro vira toast em português, e o card e o quadro recarregam (o quadro agrupa as recargas em 400 ms).
+
+**Exclusões (`card/Exclusoes.tsx`):**
+- **Card:** pelo modal, pelo clique-direito no quadro (Abrir / Arquivar / Excluir) e pelo painel Arquivados.
+  - O aviso diz que é permanente e apaga anexos, comentários, histórico e veiculações (inclusive o histórico de rejeições). Também diz que os cards-filhos continuam, e oferece "Arquivar em vez disso".
+  - Com ID de anúncio em alguma veiculação, é preciso digitar o nome do card.
+- **Lista:** pelo menu "⋯" e pelo painel Arquivados.
+  - Conta os cards em todos os quadros, inclusive arquivados. Se houver, oferece "Mover todos os cards" (`esvaziar_lista`) antes. Vazia, confirma avisando que some de todos os quadros.
+  - O banco também impede excluir lista com cards.
+
+**Quadro:** a frente do card mostra o prazo (amarelo hoje/amanhã, vermelho vencido). Os dados do quadro passaram a trazer `prazo` e o `meta_ad_id` das veiculações, usado na confirmação de exclusão.

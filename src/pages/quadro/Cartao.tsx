@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { PilulaCor } from '../../components/ds'
 import type { Etiqueta } from '../../lib/cadastros'
+import { prazoCurto, situacaoPrazo } from '../../lib/card'
 import { formatarData } from '../../lib/format'
 import {
   diasDesde,
@@ -104,6 +105,19 @@ export const CartaoFrente = memo(function CartaoFrente({
         >
           {tempoDesde(card.lista_desde, ctx.agora)}
         </span>
+        {card.prazo && (
+          <span
+            title={`Prazo: ${prazoCurto(card.prazo)}`}
+            className={`inline-flex items-center gap-0.5 rounded px-1 py-px ${
+              { vencido: 'bg-bad-soft text-bad', perto: 'bg-warn-soft text-warn', normal: '' }[situacaoPrazo(card.prazo)]
+            }`}
+          >
+            <Icone>
+              <path d="M8 13.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11ZM8 5v3l2 1.5" />
+            </Icone>
+            {prazoCurto(card.prazo)}
+          </span>
+        )}
         {card.anexos > 0 && (
           <span className="inline-flex items-center gap-0.5" title={`${card.anexos} anexo(s)`}>
             <Icone>
@@ -151,11 +165,14 @@ export const CartaoArrastavel = memo(function CartaoArrastavel({
   ctx,
   semPrazo,
   onAbrir,
+  onMenu,
 }: {
   card: CardQuadro
   ctx: Contexto
   semPrazo: boolean
   onAbrir: (id: string) => void
+  /** clique-direito: menu do card na posição do mouse */
+  onMenu: (id: string, x: number, y: number) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id, data: { tipo: 'card' } })
   return (
@@ -164,6 +181,10 @@ export const CartaoArrastavel = memo(function CartaoArrastavel({
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={`touch-manipulation ${isDragging ? 'opacity-30' : ''}`}
       onClick={() => onAbrir(card.id)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onMenu(card.id, e.clientX, e.clientY)
+      }}
       {...attributes}
       {...listeners}
       aria-roledescription="card arrastável"

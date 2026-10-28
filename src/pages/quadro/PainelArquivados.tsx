@@ -5,8 +5,16 @@ import { mensagemErro } from '../../lib/cadastros'
 import { formatarData } from '../../lib/format'
 import type { Lista, OfertaQuadro } from '../../lib/quadro'
 import { ops } from '../../lib/supabase'
+import { ConfirmarExclusaoCard, ExcluirLista } from './card/Exclusoes'
 
-type CardArquivado = { id: string; nome: string; lista_id: string; oferta_id: string; atualizado_em: string }
+type CardArquivado = {
+  id: string
+  nome: string
+  lista_id: string
+  oferta_id: string
+  atualizado_em: string
+  veiculacoes: { meta_ad_id: string | null }[]
+}
 
 /** Listas e cards arquivados (do quadro atual), com "Restaurar". */
 export function PainelArquivados({
@@ -28,11 +36,13 @@ export function PainelArquivados({
   const [cards, setCards] = useState<CardArquivado[] | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [mexendo, setMexendo] = useState<string | null>(null)
+  const [excluirCard, setExcluirCard] = useState<CardArquivado | null>(null)
+  const [excluirLista, setExcluirLista] = useState<string | null>(null)
 
   useEffect(() => {
     let q = ops()
       .from('cards')
-      .select('id, nome, lista_id, oferta_id, atualizado_em')
+      .select('id, nome, lista_id, oferta_id, atualizado_em, veiculacoes(meta_ad_id)')
       .eq('arquivado', true)
       .order('atualizado_em', { ascending: false })
     if (ofertaId) q = q.eq('oferta_id', ofertaId)
@@ -73,12 +83,30 @@ export function PainelArquivados({
           ) : (
             <ul className="divide-y divide-line rounded-card border border-line">
               {listasArquivadas.map((l) => (
-                <li key={l.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: l.cor ?? undefined }} />
-                  <span className="flex-1">{l.nome}</span>
-                  <button onClick={() => restaurarLista(l)} disabled={mexendo === l.id} className={botao}>
-                    Restaurar
-                  </button>
+                <li key={l.id} className="px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: l.cor ?? undefined }} />
+                    <span className="flex-1">{l.nome}</span>
+                    <button onClick={() => restaurarLista(l)} disabled={mexendo === l.id} className={botao}>
+                      Restaurar
+                    </button>
+                    <button onClick={() => setExcluirLista(l.id)} className={`${botao} text-bad`}>
+                      Excluir
+                    </button>
+                  </div>
+                  {excluirLista === l.id && (
+                    <div className="mt-2 rounded-control bg-surface-2 p-3">
+                      <ExcluirLista
+                        lista={l}
+                        destinos={listas.filter((x) => !x.arquivada)}
+                        onExcluida={() => {
+                          setExcluirLista(null)
+                          onListasMudaram()
+                        }}
+                        onCancelar={() => setExcluirLista(null)}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -109,6 +137,9 @@ export function PainelArquivados({
                     <button onClick={() => restaurarCard(c)} disabled={mexendo === c.id} className={botao}>
                       Restaurar
                     </button>
+                    <button onClick={() => setExcluirCard(c)} className={`${botao} text-bad`}>
+                      Excluir
+                    </button>
                   </li>
                 )
               })}
@@ -116,6 +147,17 @@ export function PainelArquivados({
           )}
         </Secao>
       </div>
+      {excluirCard && (
+        <ConfirmarExclusaoCard
+          card={excluirCard}
+          temIdAnuncio={excluirCard.veiculacoes.some((v) => v.meta_ad_id)}
+          onFechar={() => setExcluirCard(null)}
+          onExcluido={() => {
+            setCards((cs) => cs?.filter((x) => x.id !== excluirCard.id) ?? null)
+            setExcluirCard(null)
+          }}
+        />
+      )}
     </PainelLateral>
   )
 }
