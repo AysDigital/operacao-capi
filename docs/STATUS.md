@@ -1,5 +1,22 @@
 # Operação Capi — Status do projeto
 
+## Situação atual (28/10/2026)
+
+- **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
+- **Banco:** migrations 001 a 006 rodadas pela usuária. **Próxima: 007.**
+- **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage.
+- **Testado e aprovado pela usuária:**
+  - etapa 1: login e menu;
+  - etapa 2: cadastros;
+  - etapas 3 e 3b: quadro, arrastar, filtros, tempo real, ações de lista, arquivar;
+  - etapa 4: card detalhado, exclusões e os ajustes de data;
+  - etapa 4b: imagens;
+  - etapa 5: versões, gerar variações, duplicar e família.
+- **Próximas etapas:**
+  - modelos de card (substituem a lista "Em planejamento");
+  - checklist de lançamento de oferta;
+  - métricas e Meta: gasto e resultados por `meta_ad_id`, vendas por `utm_content` e escolher o anúncio numa lista vinda do Meta em vez de colar o ID.
+
 ## Etapa 1: fundação (27/10/2026)
 
 **App:** React + Vite + TS + Tailwind, mesma identidade do financeiro. Login por e-mail e senha (sem cadastro), verificação de acesso por `ops.is_membro()`, menu lateral recolhível com Quadros, Ofertas, Veiculações, Modelos e Configurações (todas "Em construção").
@@ -28,8 +45,6 @@
 - Vercel: projeto `operacao-capi`, com as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 - Endereços: https://ops.capimarketing.online (CNAME para o Vercel, HTTPS ok) e https://operacao-capi.vercel.app.
 - Supabase Auth: Site URL e Redirect URLs não foram alteradas (são compartilhadas com o dashboard). Não há recuperação de senha no app; troca de senha é pelo painel do Supabase.
-
-**Próximas etapas (não feitas):** modelos; métricas por `meta_ad_id`.
 
 ## Etapa 2: telas de cadastro (27/10/2026)
 
