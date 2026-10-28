@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useLocation } from 'react-router'
 import { sair, useAuth } from '../auth/AuthProvider'
 import { useTema, type Tema } from '../lib/theme'
 
 /** Ícones simples de traço (16×16), um por tela. */
 const ICONES: Record<string, ReactNode> = {
-  '/': <path d="M2.5 3h3v10h-3ZM6.5 3h3v6.5h-3ZM10.5 3h3v8.5h-3Z" />,
+  '/quadros': <path d="M2.5 3h3v10h-3ZM6.5 3h3v6.5h-3ZM10.5 3h3v8.5h-3Z" />,
   '/ofertas': <path d="M2.5 2.5h5l6 6-5 5-6-6Zm3 3h.01" />,
   '/veiculacoes': <path d="M3 6.5v3h2l4 3v-9l-4 3Zm8.5-1a3.5 3.5 0 0 1 0 5" />,
   '/modelos': <path d="M5.5 5.5h7v8h-7ZM3.5 10.5v-8h7" />,
@@ -13,7 +13,7 @@ const ICONES: Record<string, ReactNode> = {
 }
 
 export const TELAS = [
-  { caminho: '/', titulo: 'Quadros' },
+  { caminho: '/quadros', titulo: 'Quadros' },
   { caminho: '/ofertas', titulo: 'Ofertas' },
   { caminho: '/veiculacoes', titulo: 'Veiculações' },
   { caminho: '/modelos', titulo: 'Modelos' },
@@ -55,6 +55,8 @@ export function Layout() {
   const [menuAberto, setMenuAberto] = useState(false)
   const [recolhido, setRecolhido] = useState(lerRecolhido)
   const email = 'session' in auth ? auth.session.user.email : ''
+  // o quadro usa a largura toda da tela
+  const largo = useLocation().pathname.startsWith('/quadros')
 
   useEffect(() => {
     try {
@@ -97,7 +99,6 @@ export function Layout() {
             <NavLink
               key={t.caminho}
               to={t.caminho}
-              end={t.caminho === '/'}
               onClick={() => setMenuAberto(false)}
               title={recolhido ? t.titulo : undefined}
               className={({ isActive }) =>
@@ -127,7 +128,7 @@ export function Layout() {
       </aside>
 
       <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8">
-        <div className="mx-auto max-w-6xl">
+        <div className={largo ? '' : 'mx-auto max-w-6xl'}>
           <Outlet />
         </div>
       </main>

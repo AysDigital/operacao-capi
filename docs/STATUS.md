@@ -29,7 +29,7 @@
 - Endereços: https://ops.capimarketing.online (CNAME para o Vercel, HTTPS ok) e https://operacao-capi.vercel.app.
 - Supabase Auth: Site URL e Redirect URLs não foram alteradas (são compartilhadas com o dashboard). Não há recuperação de senha no app; troca de senha é pelo painel do Supabase.
 
-**Próximas etapas (não feitas):** quadro (kanban) com as 10 listas; card detalhado; modelos; métricas por `meta_ad_id`.
+**Próximas etapas (não feitas):** card detalhado; modelos; métricas por `meta_ad_id`.
 
 ## Etapa 2: telas de cadastro (27/10/2026)
 
@@ -60,3 +60,43 @@ Sem migration nova: as contagens e os bloqueios de exclusão usam o que a 001 j�
 - `Toast.tsx`: `useToast()` para sucesso e erro.
 - `lib/cadastros.ts`: tipos, status das ofertas, paleta e tradução dos erros do banco (`mensagemErro`).
 - `lib/useCarregar.ts`: carregar listas.
+
+## Etapa 3: o quadro (27/10/2026)
+
+**Migration 002 (`002_cards_lista_desde.sql`):** coluna `cards.lista_desde`. Para os cards existentes, usa a última mudança de lista registrada em `atividades` e, se não houver, a data de criação (os gatilhos ficam desligados nesse preenchimento, para não mexer em `atualizado_em`). Gatilho `cards_lista_desde` reinicia a data quando o card muda de lista. Próxima migration: 003.
+
+**Tempo real:** `ops.cards` e `ops.veiculacoes` precisam estar na publicação `supabase_realtime` (ativado pela usuária no painel). Qualquer mudança recarrega o quadro (rajadas agrupadas em 400 ms; durante um arrasto, espera soltar). Voltar para a aba também recarrega. A barra mostra "Ao vivo" quando o canal está conectado.
+
+**Navegação (`src/pages/quadro/Quadros.tsx`):**
+- `/quadros/todas` e `/quadros/{id da oferta}`; `/` e `/quadros` abrem o último quadro (`localStorage` `ultimo_quadro`).
+- Abas: "Todas as ofertas" + uma por oferta não pausada (cor, sigla, nome); as pausadas ficam no menu "Pausadas (n)".
+- Os filtros ficam na URL e acompanham a troca de quadro.
+- O quadro usa a largura toda da tela (o `Layout` tira o limite de largura em `/quadros`).
+
+**Quadro (`Quadro.tsx`):**
+- 10 listas lado a lado com rolagem horizontal; cada lista rola por dentro.
+- Cabeçalho com cor, nome, número de cards visíveis e o botão de recolher (lembrado em `listas_recolhidas`). Lista recolhida vira uma coluna estreita que ainda aceita cards soltos.
+- Os cards vêm em páginas de 1000 (`buscarCards`). Os arquivados só são buscados com o filtro ligado.
+- Clicar no card abre um modal provisório ("Detalhes na próxima etapa").
+
+**Frente do card (`Cartao.tsx`):**
+- Pílula da oferta (só em "Todas"), etiquetas, nome (ads em fonte mono).
+- Pílulas das contas por apelido, com ícone e cor do status: rodando verde, em análise amarelo, rejeitado vermelho, pausado cinza. "Não subido" não aparece. Passando o mouse: "Conta 02 – BM Nicoly · Rejeitado em 24/10".
+- Rodapé:
+  - tempo na lista ("agora", "5h", "3d"), amarelo depois de 2 dias e vermelho depois de 5, exceto em Standby, Em veiculação e Rejeitado;
+  - quando houver: anexos, comentários, checklist feitos/total (verde quando completo) e troféu de vencedor.
+
+**Arrastar e soltar (@dnd-kit):**
+- Mouse (depois de 6 px, para o clique continuar abrindo o card), toque (segurar 200 ms) e teclado.
+- Atualização otimista; se o banco recusar, o card volta e aparece o erro.
+- Posição = meio entre os vizinhos (`posicaoEntre`), então só o card movido é gravado. Se o intervalo esgotar, a lista é renumerada.
+
+**Criar card rápido (`NovoCard.tsx`):**
+- "+ Adicionar card" no fim de cada lista. Tipo Ad/VSL/Outro.
+- No Ad: oferta (só em "Todas", entre as não pausadas), AD/H/M e formato (sugestões VD, IMG, CAR, GIF).
+- Sugere o próximo AD livre da oferta (maior AD + 1, contando arquivados) com H1 e M1, e mostra a prévia do nome.
+- Enter cria e deixa aberto; depois de criar, sugere de novo o próximo AD livre.
+- AD/H/M repetido: "Já existe o AD1-H1-M2 nesta oferta.".
+- Lembra o último tipo, formato e oferta usados.
+
+**Filtros (`BarraFiltros.tsx`, na URL):** busca por nome, etiqueta, tipo, status da veiculação + conta ("Rejeitado na C2"), só vencedores, mostrar arquivados, limpar filtros e contador de cards visíveis.

@@ -430,3 +430,21 @@ export function SeletorCor({ cores, valor, onMudar }: { cores: readonly { hex: s
     </div>
   )
 }
+
+/** Pílula com fundo na cor informada; o texto fica escuro ou claro conforme o fundo. */
+export function PilulaCor({ texto, cor, pequena, title }: { texto: ReactNode; cor: string | null; pequena?: boolean; title?: string }) {
+  const hex = cor ?? '#7d786f'
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  const clara = 0.299 * r + 0.587 * g + 0.114 * b > 160
+  return (
+    <span
+      title={title}
+      className={`inline-block max-w-full truncate rounded-full font-medium ${pequena ? 'px-1.5 py-px text-[11px] leading-4' : 'px-2.5 py-0.5 text-xs'} ${
+        clara ? 'text-[#2b2a28]' : 'text-white'
+      }`}
+      style={{ background: hex }}
+    >
+      {texto}
+    </span>
+  )
+}

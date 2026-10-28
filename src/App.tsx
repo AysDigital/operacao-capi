@@ -10,6 +10,7 @@ import { Etiquetas } from './pages/config/Etiquetas'
 import { Login } from './pages/Login'
 import { Ofertas } from './pages/Ofertas'
 import { Placeholder } from './pages/Placeholder'
+import { IrParaUltimoQuadro, Quadros } from './pages/quadro/Quadros'
 
 function Portao() {
   const auth = useAuth()
@@ -37,9 +38,12 @@ function Portao() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        {TELAS.filter((t) => !['/ofertas', '/config'].includes(t.caminho)).map((t) => (
+        {TELAS.filter((t) => !['/quadros', '/ofertas', '/config'].includes(t.caminho)).map((t) => (
           <Route key={t.caminho} path={t.caminho} element={<Placeholder titulo={t.titulo} />} />
         ))}
+        <Route path="/" element={<IrParaUltimoQuadro />} />
+        <Route path="/quadros" element={<IrParaUltimoQuadro />} />
+        <Route path="/quadros/:id" element={<Quadros />} />
         <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/config" element={<Configuracoes />}>
           <Route index element={<Navigate to="contas" replace />} />

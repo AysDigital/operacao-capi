@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Aviso, CaixaTabela, Carregando, Modal, SeletorCor, tabela, Vazio } from '../../components/ds'
+import { Aviso, CaixaTabela, PilulaCor, Carregando, Modal, SeletorCor, tabela, Vazio } from '../../components/ds'
 import { useToast } from '../../components/Toast'
 import { Botao, BotaoExcluir, Campo, entrada } from '../../components/ui'
 import { contagem, mensagemErro, PALETA, type Etiqueta } from '../../lib/cadastros'
@@ -7,18 +7,6 @@ import { ops } from '../../lib/supabase'
 import { useCarregar } from '../../lib/useCarregar'
 
 type Linha = Etiqueta & { card_etiquetas: { count: number }[] }
-
-/** Etiqueta como aparece no card: fundo na cor, texto escuro ou claro conforme o fundo. */
-export function PilulaEtiqueta({ nome, cor }: { nome: string; cor: string | null }) {
-  const hex = cor ?? '#7d786f'
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
-  const clara = 0.299 * r + 0.587 * g + 0.114 * b > 160
-  return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${clara ? 'text-[#2b2a28]' : 'text-white'}`} style={{ background: hex }}>
-      {nome}
-    </span>
-  )
-}
 
 export function Etiquetas() {
   const { dados, erro, recarregar } = useCarregar<Linha>(() =>
@@ -51,7 +39,7 @@ export function Etiquetas() {
               {dados.map((e) => (
                 <tr key={e.id} onClick={() => setEditando(e)} className="cursor-pointer hover:bg-surface-2">
                   <td className={tabela.td}>
-                    <PilulaEtiqueta nome={e.nome} cor={e.cor} />
+                    <PilulaCor texto={e.nome} cor={e.cor} />
                   </td>
                   <td className={tabela.num}>{contagem(e.card_etiquetas)}</td>
                   <td className={`${tabela.td} text-right`}>
@@ -148,7 +136,7 @@ function ModalEtiqueta({ etiqueta, onFechar, onSalvo }: { etiqueta: Linha | null
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted">Prévia:</span>
-          <PilulaEtiqueta nome={nome.trim() || 'Etiqueta'} cor={cor} />
+          <PilulaCor texto={nome.trim() || 'Etiqueta'} cor={cor} />
         </div>
 
         {confirmandoExclusao && (
