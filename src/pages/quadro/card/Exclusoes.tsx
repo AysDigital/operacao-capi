@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Aviso, Modal } from '../../../components/ds'
 import { useToast } from '../../../components/Toast'
 import { Botao, entrada } from '../../../components/ui'
+import { limparPastaDoCard } from '../../../lib/arquivos'
 import { mensagemErro } from '../../../lib/cadastros'
 import type { Lista } from '../../../lib/quadro'
 import { ops } from '../../../lib/supabase'
@@ -34,6 +35,8 @@ export function ConfirmarExclusaoCard({
     const { error } = await ops().from('cards').delete().eq('id', card.id)
     setExcluindo(false)
     if (error) return toast('ruim', mensagemErro(error))
+    // só depois que o card saiu do banco: as imagens dele não servem mais
+    await limparPastaDoCard(card.id)
     toast('bom', `${card.nome} excluído.`)
     onExcluido()
   }

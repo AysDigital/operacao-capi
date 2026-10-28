@@ -188,4 +188,26 @@ Pedidas pela usuária depois de testar a etapa 3 (todos os 5 testes ok).
 - **Data do status da veiculação:** só grava ao sair do campo, pelo mesmo motivo. As duas datas aceitam apenas anos 20xx.
 - **Editor de texto:** sem o botão "Link" (links colados continuam virando link).
 - **ID do anúncio:** dica ⓘ explicando onde achar (link com `selected_ad_ids=` ou a coluna "ID do anúncio").
-- **Pendente de decisão da usuária:** colar imagem nos comentários, que precisa de um bucket no Supabase Storage (fora do schema `ops`).
+
+## Etapa 4b: imagens (28/10/2026)
+
+**Migration 005 (`005_storage_imagens.sql`), exceção autorizada pela usuária, fora do `ops`:**
+- bucket privado `operacao`: até 10 MB, só PNG, JPG, GIF e WEBP;
+- quatro políticas `operacao_*` em `storage.objects` (ler, enviar, alterar, apagar), só nesse bucket e só para membros (`ops.is_membro()`). Registrado no CLAUDE.md.
+- Próxima migration: 006.
+
+**Como funciona (`src/lib/arquivos.ts`):**
+- As imagens ficam em `cards/{id do card}/{uuid}.ext`.
+- No banco ficam como `storage:{caminho}`: no texto como `![imagem](storage:…)`, nos anexos em `anexos.url`.
+- O bucket é privado, então a tela usa links temporários de 1 hora, guardados por 50 minutos.
+
+**Na tela:**
+- **Comentários e descrição:** colar (Ctrl+V) ou arrastar imagem no editor insere a imagem no texto. Ela aparece no comentário e abre em tamanho real numa aba nova.
+- **Anexos:**
+  - "+ Imagem" (escolher arquivo), arrastar para a seção ou Ctrl+V com o card aberto, fora de um campo de texto;
+  - o anexo de imagem mostra miniatura, e o título dele pode ser editado.
+- **Limpeza:**
+  - remover um anexo de imagem apaga o arquivo;
+  - editar um comentário apaga as imagens que saíram do texto, e excluir o comentário apaga as dele;
+  - excluir o card apaga a pasta inteira dele, depois que o card sai do banco.
+  - Imagens coladas num comentário que nunca foi enviado, ou tiradas da descrição, ficam na pasta do card até ele ser excluído.

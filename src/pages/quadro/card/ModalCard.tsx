@@ -137,6 +137,7 @@ export function ModalCard({
             <section>
               <TituloSecao icone={ICONES.descricao}>Descrição</TituloSecao>
               <Descricao
+                cardId={card.id}
                 valor={card.descricao}
                 onSalvar={async (descricao) => {
                   await salvar(ops().from('cards').update({ descricao }).eq('id', card.id))

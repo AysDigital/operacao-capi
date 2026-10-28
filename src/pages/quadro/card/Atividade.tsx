@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Carregando } from '../../../components/ds'
 import type { Membro } from '../../../lib/card'
+import { caminhosNoTexto, removerArquivos } from '../../../lib/arquivos'
 import { formatarDataHora } from '../../../lib/format'
 import { gravarLocal, lerLocal } from '../../../lib/quadro'
 import { ops } from '../../../lib/supabase'
@@ -88,7 +89,7 @@ export function ComentariosEAtividade({
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) comentar()
         }}
       >
-        <EditorTexto valor={novo} onMudar={setNovo} placeholder="Escrever um comentário…" linhas={2} />
+        <EditorTexto valor={novo} onMudar={setNovo} placeholder="Escrever um comentário…" linhas={2} cardId={cardId} />
         {novo.trim() && (
           <button onClick={comentar} disabled={enviando} className="mt-1.5 rounded-control bg-accent px-3 py-1 text-xs font-medium text-accent-ink disabled:opacity-50">
             {enviando ? 'Enviando…' : 'Comentar'}
@@ -104,7 +105,7 @@ export function ComentariosEAtividade({
         <ol className="space-y-3">
           {entradas.map((e) =>
             e.tipo === 'comentario' ? (
-              <ItemComentario key={`c${e.id}`} c={e} nome={nome(e.autor_id)} cor={cor(e.autor_id)} meu={e.autor_id === euId} salvar={salvar} />
+              <ItemComentario key={`c${e.id}`} c={e} cardId={cardId} nome={nome(e.autor_id)} cor={cor(e.autor_id)} meu={e.autor_id === euId} salvar={salvar} />
             ) : (
               <li key={`a${e.id}`} className="flex gap-2 text-sm">
                 <Avatar nome={nome(e.autor_id)} cor={cor(e.autor_id)} tamanho="h-6 w-6 text-[10px]" />
@@ -121,14 +122,37 @@ export function ComentariosEAtividade({
   )
 }
 
-function ItemComentario({ c, nome, cor, meu, salvar }: { c: Comentario; nome: string; cor: string | null; meu: boolean; salvar: Salvar }) {
+function ItemComentario({
+  c,
+  cardId,
+  nome,
+  cor,
+  meu,
+  salvar,
+}: {
+  c: Comentario
+  cardId: string
+  nome: string
+  cor: string | null
+  meu: boolean
+  salvar: Salvar
+}) {
   const [editando, setEditando] = useState(false)
   const [texto, setTexto] = useState(c.texto)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
 
   async function salvarEdicao() {
     if (!texto.trim()) return
-    if (await salvar(ops().from('comentarios').update({ texto: texto.trim() }).eq('id', c.id))) setEditando(false)
+    if (await salvar(ops().from('comentarios').update({ texto: texto.trim() }).eq('id', c.id))) {
+      setEditando(false)
+      // imagens que saíram do texto na edição
+      const ficaram = caminhosNoTexto(texto)
+      removerArquivos(caminhosNoTexto(c.texto).filter((x) => !ficaram.includes(x)))
+    }
+  }
+
+  async function excluir() {
+    if (await salvar(ops().from('comentarios').delete().eq('id', c.id))) removerArquivos(caminhosNoTexto(c.texto))
   }
 
   return (
@@ -144,7 +168,7 @@ function ItemComentario({ c, nome, cor, meu, salvar }: { c: Comentario; nome: st
         </p>
         {editando ? (
           <div className="mt-1">
-            <EditorTexto valor={texto} onMudar={setTexto} linhas={3} autoFocus />
+            <EditorTexto valor={texto} onMudar={setTexto} linhas={3} autoFocus cardId={cardId} />
             <div className="mt-1.5 flex gap-2">
               <button onClick={salvarEdicao} className="rounded-control bg-accent px-3 py-1 text-xs font-medium text-accent-ink">
                 Salvar
@@ -170,7 +194,7 @@ function ItemComentario({ c, nome, cor, meu, salvar }: { c: Comentario; nome: st
             {confirmarExcluir ? (
               <>
                 <span className="text-bad">Excluir este comentário?</span>
-                <button onClick={() => salvar(ops().from('comentarios').delete().eq('id', c.id))} className="font-medium text-bad hover:underline">
+                <button onClick={excluir} className="font-medium text-bad hover:underline">
                   Excluir
                 </button>
                 <button onClick={() => setConfirmarExcluir(false)} className="hover:text-ink">

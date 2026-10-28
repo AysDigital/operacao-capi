@@ -117,6 +117,7 @@ export const prazoCurto = (prazo: string) => `${Number(prazo.slice(8, 10))} ${ME
 // Anexos: ícone pelo domínio
 // ---------------------------------------------------------------------
 export function tipoDoLink(url: string): { rotulo: string; cor: string } {
+  if (url.startsWith('storage:')) return { rotulo: 'Imagem', cor: '#b07a3e' }
   let host = ''
   let caminho = ''
   try {

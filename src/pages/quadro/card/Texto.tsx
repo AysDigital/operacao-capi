@@ -1,8 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { useToast } from '../../../components/Toast'
+import { enviarImagem, imagensDe, marcaImagem, useUrlAssinada } from '../../../lib/arquivos'
 
 /**
  * Formatação simples, no estilo do Trello:
  *   **negrito**   - item de lista   1. item numerado   [texto](https://link)   links soltos
+ *   ![imagem](storage:caminho)   imagem guardada no Storage (colada ou arrastada)
  * Desenhado como elementos React (sem HTML cru), então não há risco de código injetado.
  */
 export function TextoFormatado({ texto }: { texto: string }) {
@@ -44,10 +47,12 @@ export function TextoFormatado({ texto }: { texto: string }) {
   return <div className="text-sm leading-relaxed break-words">{blocos}</div>
 }
 
-const MARCAS = /(\*\*[^*]+\*\*|\[[^\]]+\]\((?:https?:\/\/)[^\s)]+\)|https?:\/\/[^\s<]+)/g
+const MARCAS = /(!\[[^\]]*\]\(storage:[^\s)]+\)|\*\*[^*]+\*\*|\[[^\]]+\]\((?:https?:\/\/)[^\s)]+\)|https?:\/\/[^\s<]+)/g
 
 function emLinha(t: string): ReactNode[] {
   return t.split(MARCAS).map((parte, k) => {
+    const imagem = parte.match(/^!\[[^\]]*\]\(storage:([^\s)]+)\)$/)
+    if (imagem) return <ImagemGuardada key={k} caminho={imagem[1]} />
     if (/^\*\*[^*]+\*\*$/.test(parte)) return <strong key={k}>{parte.slice(2, -2)}</strong>
     const link = parte.match(/^\[([^\]]+)\]\(([^\s)]+)\)$/)
     if (link) return <Link key={k} href={link[2]}>{link[1]}</Link>
@@ -64,7 +69,18 @@ function Link({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
-/** Caixa de texto com botões de negrito, lista e link (inserem a marcação no texto). */
+/** Imagem do Storage dentro de um texto; clicar abre em tamanho real numa aba nova. */
+export function ImagemGuardada({ caminho, pequena }: { caminho: string; pequena?: boolean }) {
+  const url = useUrlAssinada(caminho)
+  if (!url) return <span className={`my-1 block animate-pulse rounded-control bg-surface-2 ${pequena ? 'h-12 w-16' : 'h-32 w-48'}`} aria-label="Carregando imagem" />
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="my-1 block w-fit">
+      <img src={url} alt="Imagem anexada" loading="lazy" className={`rounded-control border border-line object-cover ${pequena ? 'h-12 w-16' : 'max-h-64 max-w-full'}`} />
+    </a>
+  )
+}
+
+/** Caixa de texto com botões de negrito e lista. Com `cardId`, aceita colar ou arrastar imagens. */
 export function EditorTexto({
   valor,
   onMudar,
@@ -72,6 +88,7 @@ export function EditorTexto({
   placeholder,
   linhas = 5,
   autoFocus,
+  cardId,
 }: {
   valor: string
   onMudar: (v: string) => void
@@ -79,8 +96,35 @@ export function EditorTexto({
   placeholder?: string
   linhas?: number
   autoFocus?: boolean
+  /** card onde as imagens coladas são guardadas (sem ele, colar imagem não faz nada) */
+  cardId?: string
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const toast = useToast()
+  const [enviando, setEnviando] = useState(0)
+  // o texto pode mudar enquanto a imagem sobe: a inserção usa sempre o valor mais novo
+  const atual = useRef(valor)
+  atual.current = valor
+
+  async function receberImagens(arquivos: File[]) {
+    if (!cardId || !arquivos.length) return
+    const pos = ref.current?.selectionStart ?? atual.current.length
+    setEnviando((n) => n + arquivos.length)
+    for (const arquivo of arquivos) {
+      try {
+        const caminho = await enviarImagem(cardId, arquivo)
+        const texto = atual.current
+        const antes = texto.slice(0, pos)
+        const marca = (antes && !antes.endsWith('\n') ? '\n' : '') + marcaImagem(caminho) + '\n'
+        onMudar(antes + marca + texto.slice(pos))
+      } catch (e) {
+        toast('ruim', (e as Error).message)
+      } finally {
+        setEnviando((n) => n - 1)
+      }
+    }
+    ref.current?.focus()
+  }
 
   /** Troca a seleção por `antes + seleção + depois` e mantém o cursor no lugar certo. */
   function envolver(antes: string, depois: string, padrao: string) {
@@ -120,12 +164,26 @@ export function EditorTexto({
         <button type="button" className={botao} onMouseDown={semPerderFoco(lista)} title="Lista">
           • Lista
         </button>
+        {cardId && <span className="ml-auto self-center pr-1 text-[11px] text-muted">{enviando > 0 ? 'Enviando imagem…' : 'Cole ou arraste imagens'}</span>}
       </div>
       <textarea
         ref={ref}
         value={valor}
         onChange={(e) => onMudar(e.target.value)}
-        onBlur={onSair}
+        onBlur={() => enviando === 0 && onSair?.()}
+        onPaste={(e) => {
+          const imagens = imagensDe(e.clipboardData)
+          if (!cardId || !imagens.length) return
+          e.preventDefault()
+          receberImagens(imagens)
+        }}
+        onDragOver={(e) => cardId && e.dataTransfer.types.includes('Files') && e.preventDefault()}
+        onDrop={(e) => {
+          const imagens = imagensDe(e.dataTransfer)
+          if (!cardId || !imagens.length) return
+          e.preventDefault()
+          receberImagens(imagens)
+        }}
         rows={linhas}
         autoFocus={autoFocus}
         placeholder={placeholder}
@@ -136,7 +194,7 @@ export function EditorTexto({
 }
 
 /** Descrição: mostra formatada; clicando, edita. Salva ao sair do campo. */
-export function Descricao({ valor, onSalvar }: { valor: string | null; onSalvar: (v: string | null) => Promise<void> }) {
+export function Descricao({ cardId, valor, onSalvar }: { cardId: string; valor: string | null; onSalvar: (v: string | null) => Promise<void> }) {
   const [editando, setEditando] = useState(false)
   const [rascunho, setRascunho] = useState(valor ?? '')
 
@@ -152,7 +210,7 @@ export function Descricao({ valor, onSalvar }: { valor: string | null; onSalvar:
   }
 
   if (editando) {
-    return <EditorTexto valor={rascunho} onMudar={setRascunho} onSair={sair} autoFocus linhas={6} placeholder="Escreva os detalhes do card…" />
+    return <EditorTexto valor={rascunho} onMudar={setRascunho} onSair={sair} autoFocus linhas={6} placeholder="Escreva os detalhes do card…" cardId={cardId} />
   }
   return (
     <div

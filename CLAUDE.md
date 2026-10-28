@@ -8,6 +8,10 @@ Usuários: May e Luciano.
 - Todo o sistema da operação vive no schema `ops`.
 - Nunca criar, alterar, apagar ou escrever nada fora do schema `ops` (tabelas, views, funções, triggers, políticas, publicações, jobs).
 - Os schemas `public` e `fin` não são usados por este app. Qualquer leitura deles precisa de autorização.
+- **Exceções autorizadas pela usuária (fora do schema `ops`):**
+  - publicação `supabase_realtime`: tabelas `ops.cards` e `ops.veiculacoes` (ativadas por ela no painel em 28/10/2026, etapa 3);
+  - Storage (autorizado em 28/10/2026, migration 005): bucket privado `operacao` e as políticas `operacao_*` em `storage.objects`, todas restritas a esse bucket. Imagens ficam em `cards/{id do card}/` e são guardadas no banco como `storage:{caminho}`;
+  - qualquer outro objeto fora do `ops` precisa de nova autorização.
 - Acesso: só quem está em `ops.membros` (ativo) lê e escreve (`ops.is_membro()`). Estar logado não basta, porque o Auth é compartilhado com o dashboard.
 
 ## Migrations
