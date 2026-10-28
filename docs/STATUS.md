@@ -211,3 +211,45 @@ Pedidas pela usuária depois de testar a etapa 3 (todos os 5 testes ok).
   - editar um comentário apaga as imagens que saíram do texto, e excluir o comentário apaga as dele;
   - excluir o card apaga a pasta inteira dele, depois que o card sai do banco.
   - Imagens coladas num comentário que nunca foi enviado, ou tiradas da descrição, ficam na pasta do card até ele ser excluído.
+
+## Etapa 5: versões dos ads e variações (28/10/2026)
+
+Família = cards Ad da mesma oferta com o mesmo AD. H = hook, M = variação do hook. `parent_card_id` guarda de qual card a versão veio.
+
+**Migration 006 (`006_versoes.sql`), com tudo rodando nas permissões de quem chama (RLS vale):**
+- `ops.criar_versoes(origem, tipo, quantidade, lista, motivo)`:
+  - `variacao` = mesmo AD/H, próximo M livre; `hook` = próximo H livre, M1;
+  - números calculados no banco contando arquivados, com trava por família (`ops.travar_familia`, advisory lock da transação), para não colidir com duas pessoas ao mesmo tempo;
+  - preenche `parent_card_id` e `motivo_versao`. O histórico "criou esta versão a partir de…" (na nova) e "nova versão: …" (na origem) vem do `cards_log`.
+- `ops.gerar_variacoes(origem, hooks, variacoes, lista, motivo)`: hooks novos e variações do mesmo H numa transação só (até 10 + 10).
+- `ops.duplicar_card(origem, lista, ad, hook, var, nome)`:
+  - qualquer tipo, sem ligação de versão;
+  - no Ad, AD/H/M informados ou o próximo AD livre; no VSL/Outro, "… (cópia)".
+- `ops.copiar_conteudo(de, para)`:
+  - copia etiquetas, membros, anexos e checklists (itens desmarcados); a descrição é copiada no próprio insert;
+  - não copia comentários, veiculações, vencedor e prazo;
+  - roda com `ops.silencio = 1` na transação, então a cópia não gera "adicionou…" no histórico. `ops.registrar` foi refeita para respeitar isso.
+- Próxima migration: 007.
+
+**Imagens nas cópias (`copiarImagensParaCards` em `lib/arquivos.ts`):**
+- O banco não copia arquivos do Storage. Logo depois de criar, o app copia cada imagem (anexos e descrição) para `cards/{card novo}/` e troca o caminho. Se a cópia falhar, o card novo continua apontando para o arquivo da origem.
+- **Proteção:** remover anexo, editar ou excluir comentário só apaga arquivos da pasta do próprio card (`ehDoCard`). Assim nunca se apaga a imagem de outro card.
+
+**Telas (`src/pages/quadro/card/Versoes.tsx`):**
+- **Nova versão:** no modal do card Ad e no clique-direito.
+  - O que criar: "Nova variação (M)" ou "Novo hook (H)", com a prévia do nome.
+  - Motivo obrigatório: atalhos (Rejeitado, Ajuste de edição, Teste de variação, Escala de vencedor) + texto. Com veiculação rejeitada na origem, já vem "Rejeitado: C2: motivo (categoria)".
+  - Lista de destino: "Em ajuste [Edição]" se o motivo é Rejeitado, senão "Criação". Escolher à mão fixa a escolha.
+  - Origem: manter (padrão), mover para Rejeitado ou arquivar.
+  - Depois de criar, abre o card novo.
+- **Gerar variações:**
+  - hooks novos (0–10) e variações do hook (0–10), com a lista dos nomes que vão nascer;
+  - destino "Criação" e motivo "Escala de vencedor" se o card for vencedor;
+  - toast "N cards criados em X".
+- **Duplicar:** todos os tipos, no modal e no clique-direito. No Ad sugere o próximo AD livre com H1 M1; no VSL/Outro, o título "(cópia)". Abre o card novo.
+- **Família AD{n}:** última seção do card Ad.
+  - Árvore por H, com os Ms embaixo.
+  - Cada item mostra nome curto, lista, pílulas das contas e troféu. Arquivados ficam acinzentados.
+  - O card aberto fica destacado, e clicar abre o outro card.
+- **"Veio de: AD1-H1-M1 · motivo"** no cabeçalho, clicável.
+- **Componente reaproveitado:** `PilulasContas` saiu do `Cartao.tsx`, para a frente do card e a família usarem as mesmas pílulas.

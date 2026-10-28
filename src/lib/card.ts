@@ -31,6 +31,10 @@ export type CardDetalhe = {
   arquivado: boolean
   prazo: string | null
   criado_em: string
+  parent_card_id: string | null
+  motivo_versao: string | null
+  /** card de onde esta versão veio */
+  origem: { id: string; nome: string; ad_num: number | null; hook_num: number | null; var_num: number | null } | null
   etiquetas: string[]
   membros: string[]
   anexos: Anexo[]
@@ -45,6 +49,7 @@ export async function buscarCardDetalhe(id: string): Promise<CardDetalhe | null>
     .from('cards')
     .select(
       `id, oferta_id, lista_id, tipo, formato, ad_num, hook_num, var_num, nome, descricao, vencedor, arquivado, prazo, criado_em,
+       parent_card_id, motivo_versao, origem:parent_card_id(id, nome, ad_num, hook_num, var_num),
        card_etiquetas(etiqueta_id), card_membros(user_id),
        anexos(id, titulo, url, ordem),
        veiculacoes(id, conta_id, status, meta_ad_id, data_status, motivo_rejeicao, categoria_rejeicao),
@@ -58,7 +63,7 @@ export async function buscarCardDetalhe(id: string): Promise<CardDetalhe | null>
     checklists: (Omit<Checklist, 'itens'> & { checklist_itens: ItemChecklist[] })[]
   }
   return {
-    ...(resto as Omit<CardDetalhe, 'etiquetas' | 'membros' | 'anexos' | 'checklists'>),
+    ...(resto as unknown as Omit<CardDetalhe, 'etiquetas' | 'membros' | 'anexos' | 'checklists'>),
     etiquetas: card_etiquetas.map((e: { etiqueta_id: string }) => e.etiqueta_id),
     membros: card_membros.map((m: { user_id: string }) => m.user_id),
     anexos: [...(anexos as Anexo[])].sort(porOrdem),

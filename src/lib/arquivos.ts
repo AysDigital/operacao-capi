@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from './supabase'
+import { ops, supabase } from './supabase'
 
 /**
  * Imagens da operação no Supabase Storage (bucket privado "operacao", migration 005).
@@ -68,4 +68,43 @@ export function useUrlAssinada(caminho: string | null) {
     }
   }, [caminho])
   return url
+}
+
+/** O arquivo está na pasta deste card? (só esses podem ser apagados junto com algo do card) */
+export const ehDoCard = (cardId: string, caminho: string) => caminho.startsWith(`cards/${cardId}/`)
+
+/**
+ * Depois de criar versões ou duplicar: as imagens copiadas pelo banco ainda apontam
+ * para a pasta da origem. Copia cada arquivo para a pasta do card novo e troca o caminho
+ * (nos anexos e na descrição). Se a cópia de um arquivo falhar, ele continua apontando
+ * para a origem, que segue funcionando.
+ */
+export async function copiarImagensParaCards(cardIds: string[]) {
+  for (const cardId of cardIds) {
+    const [{ data: anexos }, { data: card }] = await Promise.all([
+      ops().from('anexos').select('id, url').eq('card_id', cardId).like('url', `${PREFIXO}%`),
+      ops().from('cards').select('descricao').eq('id', cardId).maybeSingle(),
+    ])
+    const novos = new Map<string, string>()
+    const copiar = async (caminho: string) => {
+      if (ehDoCard(cardId, caminho)) return caminho
+      if (!novos.has(caminho)) {
+        const destino = `cards/${cardId}/${crypto.randomUUID()}.${caminho.split('.').pop()}`
+        const { error } = await supabase.storage.from(BUCKET).copy(caminho, destino)
+        novos.set(caminho, error ? caminho : destino)
+      }
+      return novos.get(caminho)!
+    }
+    for (const a of anexos ?? []) {
+      const destino = await copiar(caminhoDe(a.url))
+      if (destino !== caminhoDe(a.url)) await ops().from('anexos').update({ url: PREFIXO + destino }).eq('id', a.id)
+    }
+    const descricao = card?.descricao ?? ''
+    const caminhos = caminhosNoTexto(descricao)
+    if (caminhos.length) {
+      let texto = descricao
+      for (const c of caminhos) texto = texto.split(`${PREFIXO}${c}`).join(`${PREFIXO}${await copiar(c)}`)
+      if (texto !== descricao) await ops().from('cards').update({ descricao: texto }).eq('id', cardId)
+    }
+  }
 }

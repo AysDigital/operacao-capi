@@ -40,6 +40,9 @@ export const ICONES = {
   etiqueta: <path d="M2.5 2.5h5l6 6-5 5-6-6Zm3 3h.01" />,
   membro: <path d="M8 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm-4.5 5.5c0-2.2 2-4 4.5-4s4.5 1.8 4.5 4" />,
   prazo: <path d="M8 13.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11ZM8 5v3l2 1.5" />,
+  familia: <path d="M3.5 2.5v11M3.5 5h4M3.5 11h4M9.5 3.5h4v3h-4ZM9.5 9.5h4v3h-4Z" />,
+  versao: <path d="M5 2.5v7M5 9.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6-3a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 0c0 3-6 1.5-6 5" />,
+  duplicar: <path d="M5.5 5.5h7v8h-7ZM3.5 10.5v-8h7" />,
   trofeu: <path d="M5 2.5h6v3a3 3 0 0 1-6 0Zm0 1H2.5a2 2 0 0 0 2.5 2.5M11 3.5h2.5A2 2 0 0 1 11 6M8 8.5v3m-2.5 2h5" />,
 }
 

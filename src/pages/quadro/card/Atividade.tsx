@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Carregando } from '../../../components/ds'
 import type { Membro } from '../../../lib/card'
-import { caminhosNoTexto, removerArquivos } from '../../../lib/arquivos'
+import { caminhosNoTexto, ehDoCard, removerArquivos } from '../../../lib/arquivos'
 import { formatarDataHora } from '../../../lib/format'
 import { gravarLocal, lerLocal } from '../../../lib/quadro'
 import { ops } from '../../../lib/supabase'
@@ -147,12 +147,12 @@ function ItemComentario({
       setEditando(false)
       // imagens que saíram do texto na edição
       const ficaram = caminhosNoTexto(texto)
-      removerArquivos(caminhosNoTexto(c.texto).filter((x) => !ficaram.includes(x)))
+      removerArquivos(caminhosNoTexto(c.texto).filter((x) => !ficaram.includes(x) && ehDoCard(cardId, x)))
     }
   }
 
   async function excluir() {
-    if (await salvar(ops().from('comentarios').delete().eq('id', c.id))) removerArquivos(caminhosNoTexto(c.texto))
+    if (await salvar(ops().from('comentarios').delete().eq('id', c.id))) removerArquivos(caminhosNoTexto(c.texto).filter((x) => ehDoCard(cardId, x)))
   }
 
   return (

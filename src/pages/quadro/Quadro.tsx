@@ -36,6 +36,7 @@ import { ops, supabase } from '../../lib/supabase'
 import { BarraFiltros } from './BarraFiltros'
 import { ConfirmarExclusaoCard } from './card/Exclusoes'
 import { ModalCard } from './card/ModalCard'
+import { ModalDuplicar, ModalGerarVariacoes, ModalNovaVersao } from './card/Versoes'
 import { CartaoArrastavel, CartaoFrente, type Contexto } from './Cartao'
 import { MenuLista, type AcaoLista } from './MenuLista'
 import { NovaLista } from './NovaLista'
@@ -79,6 +80,7 @@ export function Quadro({
   const [novoEm, setNovoEm] = useState<string | null>(null)
   const [menuCard, setMenuCard] = useState<{ id: string; x: number; y: number } | null>(null)
   const [excluirCard, setExcluirCard] = useState<CardQuadro | null>(null)
+  const [acaoVersao, setAcaoVersao] = useState<{ acao: 'versao' | 'variacoes' | 'duplicar'; cardId: string } | null>(null)
   const [verArquivados, setVerArquivados] = useState(false)
   // durante o arrasto: a ordem provisória (ids por lista) e o card arrastado
   const [arrasto, setArrasto] = useState<Record<string, string[]> | null>(null)
@@ -353,6 +355,11 @@ export function Quadro({
 
   // ---- tela ----------------------------------------------------------------
   const cardDoMenu = menuCard ? porId.get(menuCard.id) : undefined
+  const depoisDeCriar = (novoId: string) => {
+    setAcaoVersao(null)
+    carregar()
+    onAbrirCard(novoId)
+  }
   const cardAtivo = ativo ? porId.get(ativo) : undefined
 
   return (
@@ -435,6 +442,7 @@ export function Quadro({
           onFechar={() => onAbrirCard(null)}
           onMudou={recarregarLogo}
           onBaseMudou={onListasMudaram}
+          onAbrirCard={onAbrirCard}
         />
       )}
 
@@ -443,11 +451,31 @@ export function Quadro({
           x={menuCard.x}
           y={menuCard.y}
           arquivado={cardDoMenu.arquivado}
+          ehAd={cardDoMenu.tipo === 'ad'}
+          onVersao={(acao) => setAcaoVersao({ acao, cardId: cardDoMenu.id })}
           onFechar={() => setMenuCard(null)}
           onAbrir={() => onAbrirCard(cardDoMenu.id)}
           onArquivar={() => arquivarCard(cardDoMenu, !cardDoMenu.arquivado)}
           onExcluir={() => setExcluirCard(cardDoMenu)}
         />
+      )}
+
+      {acaoVersao?.acao === 'versao' && (
+        <ModalNovaVersao cardId={acaoVersao.cardId} ctx={{ listas, ofertas, contas }} onFechar={() => setAcaoVersao(null)} onCriado={depoisDeCriar} />
+      )}
+      {acaoVersao?.acao === 'variacoes' && (
+        <ModalGerarVariacoes
+          cardId={acaoVersao.cardId}
+          ctx={{ listas, ofertas, contas }}
+          onFechar={() => setAcaoVersao(null)}
+          onCriados={() => {
+            setAcaoVersao(null)
+            carregar()
+          }}
+        />
+      )}
+      {acaoVersao?.acao === 'duplicar' && (
+        <ModalDuplicar cardId={acaoVersao.cardId} ctx={{ listas, ofertas, contas }} onFechar={() => setAcaoVersao(null)} onCriado={depoisDeCriar} />
       )}
 
       {excluirCard && (
@@ -586,6 +614,8 @@ function MenuCard({
   x,
   y,
   arquivado,
+  ehAd,
+  onVersao,
   onFechar,
   onAbrir,
   onArquivar,
@@ -594,6 +624,8 @@ function MenuCard({
   x: number
   y: number
   arquivado: boolean
+  ehAd: boolean
+  onVersao: (acao: 'versao' | 'variacoes' | 'duplicar') => void
   onFechar: () => void
   onAbrir: () => void
   onArquivar: () => void
@@ -624,12 +656,26 @@ function MenuCard({
     <div
       ref={caixa}
       role="menu"
-      style={{ top: Math.min(y, window.innerHeight - 140), left: Math.min(x, window.innerWidth - 200) }}
+      style={{ top: Math.min(y, window.innerHeight - 260), left: Math.min(x, window.innerWidth - 200) }}
       className="fixed z-40 w-48 rounded-card border border-line bg-surface p-1.5 shadow-lg"
     >
       <button role="menuitem" className={item} onClick={fazer(onAbrir)}>
         Abrir card
       </button>
+      {ehAd && (
+        <>
+          <button role="menuitem" className={item} onClick={fazer(() => onVersao('versao'))}>
+            Nova versão…
+          </button>
+          <button role="menuitem" className={item} onClick={fazer(() => onVersao('variacoes'))}>
+            Gerar variações…
+          </button>
+        </>
+      )}
+      <button role="menuitem" className={item} onClick={fazer(() => onVersao('duplicar'))}>
+        Duplicar…
+      </button>
+      <div className="my-1 border-t border-line" />
       <button role="menuitem" className={item} onClick={fazer(onArquivar)}>
         {arquivado ? 'Restaurar' : 'Arquivar'}
       </button>

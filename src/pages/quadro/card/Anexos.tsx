@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useToast } from '../../../components/Toast'
-import { caminhoDe, ehArquivo, enviarImagem, imagensDe, PREFIXO, removerArquivos, useUrlAssinada } from '../../../lib/arquivos'
+import { caminhoDe, ehArquivo, ehDoCard, enviarImagem, imagensDe, PREFIXO, removerArquivos, useUrlAssinada } from '../../../lib/arquivos'
 import { normalizarUrl, tipoDoLink, type Anexo, type CardDetalhe } from '../../../lib/card'
 import { ops } from '../../../lib/supabase'
 import { Ordenavel } from './Ordenavel'
@@ -102,7 +102,7 @@ export function Anexos({
       {card.anexos.length > 0 && (
         <div className="mb-2 space-y-1">
           <Ordenavel itens={card.anexos} onOrdenar={ordenar}>
-            {(a, alca) => <LinhaAnexo anexo={a} alca={alca} salvar={salvar} />}
+            {(a, alca) => <LinhaAnexo anexo={a} cardId={card.id} alca={alca} salvar={salvar} />}
           </Ordenavel>
         </div>
       )}
@@ -192,7 +192,7 @@ function FormAnexo({
   )
 }
 
-function LinhaAnexo({ anexo, alca, salvar }: { anexo: Anexo; alca: React.ReactNode; salvar: Salvar }) {
+function LinhaAnexo({ anexo, cardId, alca, salvar }: { anexo: Anexo; cardId: string; alca: React.ReactNode; salvar: Salvar }) {
   const [editando, setEditando] = useState(false)
   const imagem = ehArquivo(anexo.url)
   const urlImagem = useUrlAssinada(imagem ? caminhoDe(anexo.url) : null)
@@ -243,7 +243,7 @@ function LinhaAnexo({ anexo, alca, salvar }: { anexo: Anexo; alca: React.ReactNo
       </button>
       <button
         onClick={async () => {
-          if ((await salvar(ops().from('anexos').delete().eq('id', anexo.id))) && imagem) removerArquivos([caminhoDe(anexo.url)])
+          if ((await salvar(ops().from('anexos').delete().eq('id', anexo.id))) && imagem && ehDoCard(cardId, caminhoDe(anexo.url))) removerArquivos([caminhoDe(anexo.url)])
         }}
         className={`${botaoPequeno} hover:text-bad`}
       >

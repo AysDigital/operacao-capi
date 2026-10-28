@@ -13,6 +13,7 @@ import {
   type ContaQuadro,
   type OfertaQuadro,
   type StatusVeiculacao,
+  type Veiculacao,
 } from '../../lib/quadro'
 
 /** O que o card precisa saber do quadro (mapas por id), igual para todos os cards. */
@@ -29,6 +30,43 @@ const COR_CONTA: Record<Exclude<StatusVeiculacao, 'nao_subido'>, string> = {
   em_analise: 'bg-warn-soft text-warn',
   rejeitado: 'bg-bad-soft text-bad',
   pausado: 'bg-surface-2 text-muted',
+}
+
+/** Pílulas das contas onde o card foi subido (apelido, cor e ícone do status). "Não subido" não aparece. */
+export function PilulasContas({
+  veiculacoes,
+  contas,
+  className = '',
+}: {
+  veiculacoes: Veiculacao[]
+  contas: Map<string, ContaQuadro>
+  className?: string
+}) {
+  const lista = veiculacoes
+    .filter((v) => v.status !== 'nao_subido' && contas.has(v.conta_id))
+    .map((v) => ({ v, conta: contas.get(v.conta_id)! }))
+    .sort((a, b) => a.conta.apelido.localeCompare(b.conta.apelido, 'pt-BR', { numeric: true }))
+  if (!lista.length) return null
+  return (
+    <div className={`flex gap-1 overflow-hidden ${className}`}>
+      {lista.map(({ v, conta }) => {
+        const s = STATUS_VEICULACAO[v.status]
+        return (
+          <span
+            key={v.conta_id}
+            title={`${conta.nome}${conta.bm_nome ? ` – ${conta.bm_nome}` : ''} · ${s.nome} em ${formatarData(v.data_status).slice(0, 5)}`}
+            className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px font-mono text-[11px] leading-4 font-semibold ${COR_CONTA[v.status as keyof typeof COR_CONTA]}`}
+          >
+            <span aria-hidden className="text-[9px]">
+              {s.icone}
+            </span>
+            {conta.apelido}
+            <span className="sr-only">: {s.nome}</span>
+          </span>
+        )
+      })}
+    </div>
+  )
 }
 
 function Icone({ children }: { children: ReactNode }) {
@@ -54,10 +92,6 @@ export const CartaoFrente = memo(function CartaoFrente({
   const oferta = ctx.ofertas.get(card.oferta_id)
   const dias = diasDesde(card.lista_desde, ctx.agora)
   const tomTempo = semPrazo ? 'text-muted' : dias > 5 ? 'bg-bad-soft text-bad' : dias > 2 ? 'bg-warn-soft text-warn' : 'text-muted'
-  const contas = card.veiculacoes
-    .filter((v) => v.status !== 'nao_subido' && ctx.contas.has(v.conta_id))
-    .map((v) => ({ v, conta: ctx.contas.get(v.conta_id)! }))
-    .sort((a, b) => a.conta.apelido.localeCompare(b.conta.apelido, 'pt-BR', { numeric: true }))
   const etiquetas = card.etiquetas.map((id) => ctx.etiquetas.get(id)).filter((e) => e !== undefined)
 
   return (
@@ -77,26 +111,7 @@ export const CartaoFrente = memo(function CartaoFrente({
 
       <p className={`text-sm leading-snug font-medium break-words ${card.tipo === 'ad' ? 'font-mono text-[13px]' : ''}`}>{card.nome}</p>
 
-      {contas.length > 0 && (
-        <div className="mt-1.5 flex gap-1 overflow-hidden">
-          {contas.map(({ v, conta }) => {
-            const s = STATUS_VEICULACAO[v.status]
-            return (
-              <span
-                key={v.conta_id}
-                title={`${conta.nome}${conta.bm_nome ? ` – ${conta.bm_nome}` : ''} · ${s.nome} em ${formatarData(v.data_status).slice(0, 5)}`}
-                className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px font-mono text-[11px] leading-4 font-semibold ${COR_CONTA[v.status as keyof typeof COR_CONTA]}`}
-              >
-                <span aria-hidden className="text-[9px]">
-                  {s.icone}
-                </span>
-                {conta.apelido}
-                <span className="sr-only">: {s.nome}</span>
-              </span>
-            )
-          })}
-        </div>
-      )}
+      <PilulasContas veiculacoes={card.veiculacoes} contas={ctx.contas} className="mt-1.5" />
 
       <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-muted">
         <span

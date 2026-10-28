@@ -15,6 +15,7 @@ import { Avatar, botaoAcao, campoPequeno, ICONES, TituloSecao, type Atualizar, t
 import { ConfirmarExclusaoCard } from './Exclusoes'
 import { Descricao } from './Texto'
 import { Veiculacoes } from './Veiculacoes'
+import { LinhaOrigem, ModalDuplicar, ModalGerarVariacoes, ModalNovaVersao, SecaoFamilia } from './Versoes'
 
 export function ModalCard({
   cardId,
@@ -26,6 +27,7 @@ export function ModalCard({
   onFechar,
   onMudou,
   onBaseMudou,
+  onAbrirCard,
 }: {
   cardId: string
   listas: Lista[]
@@ -39,6 +41,8 @@ export function ModalCard({
   onMudou: () => void
   /** etiqueta nova: recarrega os cadastros do quadro */
   onBaseMudou: () => void
+  /** abre outro card (família, origem, versão recém-criada) */
+  onAbrirCard: (id: string) => void
 }) {
   const toast = useToast()
   const auth = useAuth()
@@ -49,6 +53,7 @@ export function ModalCard({
   const [versao, setVersao] = useState(0)
   const [pedidoAnexo, setPedidoAnexo] = useState<{ titulo: string; n: number } | null>(null)
   const [excluir, setExcluir] = useState(false)
+  const [acaoVersao, setAcaoVersao] = useState<'versao' | 'variacoes' | 'duplicar' | null>(null)
 
   const recarregar = useCallback(async () => {
     try {
@@ -99,6 +104,12 @@ export function ModalCard({
   }
 
   const temIdAnuncio = card.veiculacoes.some((v) => v.meta_ad_id)
+  /** card novo (versão ou cópia): o quadro recarrega e o modal passa para ele */
+  const depoisDeCriar = (novoId: string) => {
+    setAcaoVersao(null)
+    onMudou()
+    onAbrirCard(novoId)
+  }
   const arquivar = (arquivado: boolean) => salvar(ops().from('cards').update({ arquivado }).eq('id', card.id))
 
   return (
@@ -107,7 +118,7 @@ export function ModalCard({
         titulo={card.nome}
         largura="max-w-5xl"
         onFechar={onFechar}
-        cabecalho={<Cabecalho card={card} listas={listas} ofertas={ofertas} mostrarOferta={mostrarOferta} salvar={salvar} />}
+        cabecalho={<Cabecalho card={card} listas={listas} ofertas={ofertas} mostrarOferta={mostrarOferta} salvar={salvar} onAbrir={onAbrirCard} />}
         rodape={
           <>
             <BotaoExcluir onClick={() => setExcluir(true)}>Excluir</BotaoExcluir>
@@ -131,6 +142,7 @@ export function ModalCard({
               salvar={salvar}
               onAnexo={() => setPedidoAnexo((p) => ({ titulo: '', n: (p?.n ?? 0) + 1 }))}
               onBaseMudou={onBaseMudou}
+              onVersao={setAcaoVersao}
             />
             <Resumo card={card} etiquetas={etiquetas} membros={membros} />
 
@@ -148,6 +160,7 @@ export function ModalCard({
             <Checklists card={card} salvar={salvar} atualizar={atualizar} />
             <Anexos card={card} salvar={salvar} atualizar={atualizar} pedido={pedidoAnexo} />
             <Veiculacoes card={card} contas={contas} salvar={salvar} atualizar={atualizar} />
+            <SecaoFamilia card={card} listas={listas} contas={contas} versao={versao} onAbrir={onAbrirCard} />
           </div>
 
           <div className="min-w-0 lg:border-l lg:border-line lg:pl-6">
@@ -155,6 +168,25 @@ export function ModalCard({
           </div>
         </div>
       </Modal>
+
+      {acaoVersao === 'versao' && (
+        <ModalNovaVersao cardId={card.id} ctx={{ listas, ofertas, contas }} onFechar={() => setAcaoVersao(null)} onCriado={depoisDeCriar} />
+      )}
+      {acaoVersao === 'variacoes' && (
+        <ModalGerarVariacoes
+          cardId={card.id}
+          ctx={{ listas, ofertas, contas }}
+          onFechar={() => setAcaoVersao(null)}
+          onCriados={() => {
+            setAcaoVersao(null)
+            onMudou()
+            setVersao((v) => v + 1)
+          }}
+        />
+      )}
+      {acaoVersao === 'duplicar' && (
+        <ModalDuplicar cardId={card.id} ctx={{ listas, ofertas, contas }} onFechar={() => setAcaoVersao(null)} onCriado={depoisDeCriar} />
+      )}
 
       {excluir && (
         <ConfirmarExclusaoCard
@@ -189,12 +221,14 @@ function Cabecalho({
   ofertas,
   mostrarOferta,
   salvar,
+  onAbrir,
 }: {
   card: CardDetalhe
   listas: Lista[]
   ofertas: OfertaQuadro[]
   mostrarOferta: boolean
   salvar: Salvar
+  onAbrir: (id: string) => void
 }) {
   const oferta = ofertas.find((o) => o.id === card.oferta_id)
   const [ad, setAd] = useState(card.ad_num ?? 1)
@@ -314,6 +348,9 @@ function Cabecalho({
               </label>
             </div>
             {erroNome && <p className="mt-1 text-xs text-bad">{erroNome}</p>}
+            <div className="mt-1">
+              <LinhaOrigem card={card} onAbrir={onAbrir} />
+            </div>
           </div>
         ) : (
           <input
@@ -361,6 +398,7 @@ function BarraAcoes({
   salvar,
   onAnexo,
   onBaseMudou,
+  onVersao,
 }: {
   card: CardDetalhe
   etiquetas: Etiqueta[]
@@ -368,6 +406,7 @@ function BarraAcoes({
   salvar: Salvar
   onAnexo: () => void
   onBaseMudou: () => void
+  onVersao: (acao: 'versao' | 'variacoes' | 'duplicar') => void
 }) {
   const [novaEtiqueta, setNovaEtiqueta] = useState('')
   const [corNova, setCorNova] = useState<string>(PALETA[0].hex)
@@ -516,6 +555,21 @@ function BarraAcoes({
 
       <button onClick={onAnexo} className={botaoAcao}>
         <Icone d={ICONES.anexo} /> Anexo
+      </button>
+
+      <span className="mx-1 hidden w-px self-stretch bg-line sm:block" aria-hidden />
+      {card.tipo === 'ad' && (
+        <>
+          <button onClick={() => onVersao('versao')} className={botaoAcao}>
+            <Icone d={ICONES.versao} /> Nova versão
+          </button>
+          <button onClick={() => onVersao('variacoes')} className={botaoAcao}>
+            <Icone d={ICONES.familia} /> Gerar variações
+          </button>
+        </>
+      )}
+      <button onClick={() => onVersao('duplicar')} className={botaoAcao}>
+        <Icone d={ICONES.duplicar} /> Duplicar
       </button>
     </div>
   )
