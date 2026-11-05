@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 007 001 a 009 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários); 010 (limpa os dados de teste) criada. **Próxima: 011.**
+- **Banco:** migrations 001 a 010 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). **Próxima: 011.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -16,7 +16,7 @@
   - etapa 6: contas importadas, escolher o anúncio na lista da Meta, métricas no card e atualização automática;
   - etapa 7: regras por oferta, selos, linha de números, filtro e ordenação no quadro, ranking e alertas (testada com os dados falsos da 009).
 - **Próximas etapas:**
-  - rodar a 010 (apaga a oferta TESTE-PT e os números falsos) e criar os cards dos ads reais a partir da lista da usuária;
+  - criar os cards dos ads reais a partir da lista da usuária;
   - modelos de card (substituem a lista "Em planejamento");
   - checklist de lançamento de oferta.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
@@ -346,4 +346,4 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - última busca na Meta com falha em alguma conta, ou a busca inteira falhou: mostra o motivo;
   - a atualização automática das métricas (1 por hora) saiu de Quadros e passou para esse componente.
 
-**Teste (migration 009, temporária):** oferta "Oferta de teste" (TESTE-PT) com 7 cards, IDs de anúncio falsos (999000000000…), métricas falsas em `ops.metricas_anuncio_dia` e vendas falsas em `ops.vendas_teste` (o dashboard não foi tocado). `ops.ranking` e `ops.vendas_por_anuncio` somavam essa tabela. Aprovado pela usuária em 04/11/2026. A migration 010 volta as duas funções à versão da 007/008 e apaga tudo.
+**Teste (migration 009, temporária):** oferta "Oferta de teste" (TESTE-PT) com 7 cards, IDs de anúncio falsos (999000000000…), métricas falsas em `ops.metricas_anuncio_dia` e vendas falsas em `ops.vendas_teste` (o dashboard não foi tocado). `ops.ranking` e `ops.vendas_por_anuncio` somavam essa tabela. Aprovado pela usuária em 04/11/2026. A migration 010 (rodada em 04/11/2026) voltou as duas funções à versão da 007/008 e apagou tudo.
