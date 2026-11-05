@@ -231,7 +231,9 @@ function LinhaVeiculacao({
       {rejeitado && (
         <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_14rem]">
           <label className="text-xs text-muted">
-            Motivo da rejeição
+            <Dica conteudo="Quando o status sair de Rejeitado (ou a conta for removida do card), a rejeição fica salva nos comentários do card, com data, categoria e motivo. Para rejeitar de vez, mova o card para a lista Rejeitado.">
+              <span>Motivo da rejeição</span>
+            </Dica>
             <textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
