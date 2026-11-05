@@ -1,21 +1,23 @@
 # Operação Capi — Status do projeto
 
-## Situação atual (28/10/2026)
+## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 006 rodadas pela usuária; 007 (métricas) criada. **Próxima: 008.**
-- **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage.
+- **Banco:** migrations 001 a 007 rodadas pela usuária (007: 21 contas importadas do dashboard). **Próxima: 008.**
+- **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio).
+- **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
   - etapa 1: login e menu;
   - etapa 2: cadastros;
   - etapas 3 e 3b: quadro, arrastar, filtros, tempo real, ações de lista, arquivar;
   - etapa 4: card detalhado, exclusões e os ajustes de data;
   - etapa 4b: imagens;
-  - etapa 5: versões, gerar variações, duplicar e família.
+  - etapa 5: versões, gerar variações, duplicar e família;
+  - etapa 6: contas importadas, escolher o anúncio na lista da Meta, métricas no card e atualização automática.
 - **Próximas etapas:**
   - modelos de card (substituem a lista "Em planejamento");
-  - checklist de lançamento de oferta;
-  - métricas e Meta: gasto e resultados por `meta_ad_id`, vendas por `utm_content` e escolher o anúncio numa lista vinda do Meta em vez de colar o ID.
+  - checklist de lançamento de oferta.
+- **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
 
 ## Etapa 1: fundação (27/10/2026)
 
