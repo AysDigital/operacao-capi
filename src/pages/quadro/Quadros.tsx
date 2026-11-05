@@ -3,6 +3,7 @@ import { Link, Navigate, NavLink, useNavigate, useParams, useSearchParams } from
 import { Aviso, BolinhaCor, Carregando, Vazio } from '../../components/ds'
 import { Botao } from '../../components/ui'
 import type { Etiqueta } from '../../lib/cadastros'
+import { buscarModelos, type Modelo } from '../../lib/modelos'
 import { gravarFiltros, gravarLocal, lerFiltros, lerLocal, type ContaQuadro, type Filtros, type Lista, type OfertaQuadro } from '../../lib/quadro'
 import { ops } from '../../lib/supabase'
 import { AvisosDados } from './AvisosDados'
@@ -15,14 +16,15 @@ export function IrParaUltimoQuadro() {
   return <Navigate to={`/quadros/${lerLocal(CHAVE_ULTIMO, 'todas')}`} replace />
 }
 
-export type Base = { listas: Lista[]; ofertas: OfertaQuadro[]; contas: ContaQuadro[]; etiquetas: Etiqueta[] }
+export type Base = { listas: Lista[]; ofertas: OfertaQuadro[]; contas: ContaQuadro[]; etiquetas: Etiqueta[]; modelos: Modelo[] }
 
 export async function buscarBase(): Promise<Base> {
-  const [listas, ofertas, contas, etiquetas] = await Promise.all([
+  const [listas, ofertas, contas, etiquetas, modelos] = await Promise.all([
     ops().from('listas').select('id, nome, ordem, cor, arquivada').order('ordem'),
     ops().from('ofertas').select('id, nome, codigo, idioma, cor, status').order('nome'),
     ops().from('contas_anuncio').select('id, apelido, nome, bm_nome, ativa, meta_ad_account_id'),
     ops().from('etiquetas').select('id, nome, cor').order('nome'),
+    buscarModelos(),
   ])
   const erro = listas.error ?? ofertas.error ?? contas.error ?? etiquetas.error
   if (erro) throw new Error(erro.message)
@@ -33,6 +35,7 @@ export async function buscarBase(): Promise<Base> {
       (a, b) => Number(b.ativa) - Number(a.ativa) || a.apelido.localeCompare(b.apelido, 'pt-BR', { numeric: true }),
     ),
     etiquetas: etiquetas.data ?? [],
+    modelos,
   }
 }
 
@@ -116,6 +119,7 @@ export function Quadros() {
           ofertas={base.ofertas}
           contas={base.contas}
           etiquetas={base.etiquetas}
+          modelos={base.modelos}
           filtros={filtros}
           onFiltros={mudarFiltros}
           onListasMudaram={recarregarBase}

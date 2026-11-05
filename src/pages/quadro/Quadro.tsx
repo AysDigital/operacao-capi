@@ -18,6 +18,7 @@ import { Aviso } from '../../components/ds'
 import { useToast } from '../../components/Toast'
 import { mensagemErro, type Etiqueta } from '../../lib/cadastros'
 import { EVENTO_METRICAS } from '../../lib/metricas'
+import type { Modelo } from '../../lib/modelos'
 import { metricasDosCards } from '../../lib/ranking'
 import {
   buscarCards,
@@ -42,6 +43,7 @@ import { ModalCard } from './card/ModalCard'
 import { ModalDuplicar, ModalGerarVariacoes, ModalNovaVersao } from './card/Versoes'
 import { CartaoArrastavel, CartaoFrente, type Contexto } from './Cartao'
 import { MenuLista, type AcaoLista } from './MenuLista'
+import { ModalNovoDeModelo, ModalSalvarComoModelo } from './ModelosQuadro'
 import { NovaLista } from './NovaLista'
 import { NovoCard } from './NovoCard'
 import { PainelArquivados } from './PainelArquivados'
@@ -54,6 +56,7 @@ export function Quadro({
   ofertas,
   contas,
   etiquetas,
+  modelos,
   filtros,
   onFiltros,
   onListasMudaram,
@@ -66,6 +69,7 @@ export function Quadro({
   ofertas: OfertaQuadro[]
   contas: ContaQuadro[]
   etiquetas: Etiqueta[]
+  modelos: Modelo[]
   filtros: Filtros
   onFiltros: (f: Filtros) => void
   /** recarrega as listas (criou, arquivou ou restaurou uma) */
@@ -85,6 +89,8 @@ export function Quadro({
   const [excluirCard, setExcluirCard] = useState<CardQuadro | null>(null)
   const [acaoVersao, setAcaoVersao] = useState<{ acao: 'versao' | 'variacoes' | 'duplicar'; cardId: string } | null>(null)
   const [verArquivados, setVerArquivados] = useState(false)
+  const [novoDeModelo, setNovoDeModelo] = useState(false)
+  const [salvarModelo, setSalvarModelo] = useState<CardQuadro | null>(null)
   const [metricas, setMetricas] = useState<MetricasCards>(() => new Map())
   const [mostrarMetricas, setMostrarMetricas] = useState<boolean>(() => lerLocal('quadro_metricas', true))
   // durante o arrasto: a ordem provisória (ids por lista) e o card arrastado
@@ -406,6 +412,7 @@ export function Quadro({
         visiveis={cards ? visiveis : null}
         aoVivo={aoVivo}
         onArquivados={() => setVerArquivados(true)}
+        onNovoDeModelo={() => setNovoDeModelo(true)}
         mostrarMetricas={mostrarMetricas}
         onMostrarMetricas={(v) => {
           setMostrarMetricas(v)
@@ -451,6 +458,7 @@ export function Quadro({
                   listaId={l.id}
                   ofertaFixa={ofertaFixa}
                   ofertas={ofertasParaCriar}
+                  modelos={modelos}
                   proximaPosicao={() => proximaPosicao(l.id)}
                   onCriado={aoCriar}
                   onFechar={() => setNovoEm(null)}
@@ -495,6 +503,7 @@ export function Quadro({
           onFechar={() => setMenuCard(null)}
           onAbrir={() => onAbrirCard(cardDoMenu.id)}
           onArquivar={() => arquivarCard(cardDoMenu, !cardDoMenu.arquivado)}
+          onSalvarModelo={() => setSalvarModelo(cardDoMenu)}
           onExcluir={() => setExcluirCard(cardDoMenu)}
         />
       )}
@@ -534,6 +543,29 @@ export function Quadro({
             setCards((cs) => cs?.filter((c) => c.id !== excluirCard.id) ?? null)
             setExcluirCard(null)
           }}
+        />
+      )}
+
+      {novoDeModelo && (
+        <ModalNovoDeModelo
+          modelos={modelos}
+          ofertas={ofertasParaCriar}
+          ofertaFixa={ofertaFixa}
+          listas={listas}
+          onFechar={() => setNovoDeModelo(false)}
+          onCriados={(ids) => {
+            setNovoDeModelo(false)
+            carregar()
+            if (ids.length === 1) onAbrirCard(ids[0])
+          }}
+        />
+      )}
+      {salvarModelo && (
+        <ModalSalvarComoModelo
+          card={salvarModelo}
+          oferta={ofertas.find((o) => o.id === salvarModelo.oferta_id)}
+          onFechar={() => setSalvarModelo(null)}
+          onSalvo={onListasMudaram}
         />
       )}
 
@@ -658,6 +690,7 @@ function MenuCard({
   onFechar,
   onAbrir,
   onArquivar,
+  onSalvarModelo,
   onExcluir,
 }: {
   x: number
@@ -668,6 +701,7 @@ function MenuCard({
   onFechar: () => void
   onAbrir: () => void
   onArquivar: () => void
+  onSalvarModelo: () => void
   onExcluir: () => void
 }) {
   const caixa = useRef<HTMLDivElement>(null)
@@ -695,7 +729,7 @@ function MenuCard({
     <div
       ref={caixa}
       role="menu"
-      style={{ top: Math.min(y, window.innerHeight - 260), left: Math.min(x, window.innerWidth - 200) }}
+      style={{ top: Math.min(y, window.innerHeight - 300), left: Math.min(x, window.innerWidth - 200) }}
       className="fixed z-40 w-48 rounded-card border border-line bg-surface p-1.5 shadow-lg"
     >
       <button role="menuitem" className={item} onClick={fazer(onAbrir)}>
@@ -713,6 +747,9 @@ function MenuCard({
       )}
       <button role="menuitem" className={item} onClick={fazer(() => onVersao('duplicar'))}>
         Duplicar…
+      </button>
+      <button role="menuitem" className={item} onClick={fazer(onSalvarModelo)}>
+        Salvar como modelo…
       </button>
       <div className="my-1 border-t border-line" />
       <button role="menuitem" className={item} onClick={fazer(onArquivar)}>

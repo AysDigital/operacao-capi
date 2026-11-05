@@ -15,6 +15,7 @@ export function BarraFiltros({
   visiveis,
   aoVivo,
   onArquivados,
+  onNovoDeModelo,
   mostrarMetricas,
   onMostrarMetricas,
 }: {
@@ -25,6 +26,7 @@ export function BarraFiltros({
   visiveis: number | null
   aoVivo: boolean
   onArquivados: () => void
+  onNovoDeModelo: () => void
   /** linha "gasto · ROAS · vendas" nos cards rodando */
   mostrarMetricas: boolean
   onMostrarMetricas: (v: boolean) => void
@@ -119,6 +121,9 @@ export function BarraFiltros({
           className={`rounded-control border px-2.5 py-1 hover:bg-surface-2 hover:text-ink ${mostrarMetricas ? 'border-accent text-accent-strong' : 'border-line'}`}
         >
           Métricas
+        </button>
+        <button onClick={onNovoDeModelo} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
+          + Novo a partir de modelo
         </button>
         <button onClick={onArquivados} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
           Arquivados

@@ -16,6 +16,7 @@ import { ConfirmarExclusaoCard } from './Exclusoes'
 import { Descricao } from './Texto'
 import { Metricas } from './Metricas'
 import { Veiculacoes } from './Veiculacoes'
+import { ModalSalvarComoModelo } from '../ModelosQuadro'
 import { LinhaOrigem, ModalDuplicar, ModalGerarVariacoes, ModalNovaVersao, SecaoFamilia } from './Versoes'
 
 export function ModalCard({
@@ -54,7 +55,7 @@ export function ModalCard({
   const [versao, setVersao] = useState(0)
   const [pedidoAnexo, setPedidoAnexo] = useState<{ titulo: string; n: number } | null>(null)
   const [excluir, setExcluir] = useState(false)
-  const [acaoVersao, setAcaoVersao] = useState<'versao' | 'variacoes' | 'duplicar' | null>(null)
+  const [acaoVersao, setAcaoVersao] = useState<'versao' | 'variacoes' | 'duplicar' | 'modelo' | null>(null)
 
   const recarregar = useCallback(async () => {
     try {
@@ -188,6 +189,15 @@ export function ModalCard({
       )}
       {acaoVersao === 'duplicar' && (
         <ModalDuplicar cardId={card.id} ctx={{ listas, ofertas, contas }} onFechar={() => setAcaoVersao(null)} onCriado={depoisDeCriar} />
+      )}
+
+      {acaoVersao === 'modelo' && (
+        <ModalSalvarComoModelo
+          card={card}
+          oferta={ofertas.find((o) => o.id === card.oferta_id)}
+          onFechar={() => setAcaoVersao(null)}
+          onSalvo={onBaseMudou}
+        />
       )}
 
       {excluir && (
@@ -408,7 +418,7 @@ function BarraAcoes({
   salvar: Salvar
   onAnexo: () => void
   onBaseMudou: () => void
-  onVersao: (acao: 'versao' | 'variacoes' | 'duplicar') => void
+  onVersao: (acao: 'versao' | 'variacoes' | 'duplicar' | 'modelo') => void
 }) {
   const [novaEtiqueta, setNovaEtiqueta] = useState('')
   const [corNova, setCorNova] = useState<string>(PALETA[0].hex)
@@ -572,6 +582,9 @@ function BarraAcoes({
       )}
       <button onClick={() => onVersao('duplicar')} className={botaoAcao}>
         <Icone d={ICONES.duplicar} /> Duplicar
+      </button>
+      <button onClick={() => onVersao('modelo')} className={botaoAcao}>
+        <Icone d={<path d="M5.5 5.5h7v8h-7ZM3.5 10.5v-8h7" />} /> Salvar como modelo
       </button>
     </div>
   )
