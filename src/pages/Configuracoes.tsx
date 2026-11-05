@@ -4,6 +4,7 @@ import { TituloPagina } from '../components/ui'
 const ABAS = [
   { caminho: '/config/contas', titulo: 'Contas de anúncio' },
   { caminho: '/config/etiquetas', titulo: 'Etiquetas' },
+  { caminho: '/config/checklist-oferta', titulo: 'Checklist de oferta' },
 ]
 
 export function Configuracoes() {

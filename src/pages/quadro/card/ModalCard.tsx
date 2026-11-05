@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { useAuth } from '../../../auth/AuthProvider'
 import { Aviso, Carregando, Modal, PilulaCor, Popover, SeletorCor } from '../../../components/ds'
 import { useToast } from '../../../components/Toast'
@@ -319,6 +320,11 @@ function Cabecalho({
             ))}
           </select>
         </label>
+        {card.testes.map((t) => (
+          <Link key={t.id} to={`/ofertas/${card.oferta_id}?aba=testes`} className="rounded-full bg-info-soft px-2 py-0.5 font-medium text-info hover:underline">
+            Teste: {t.titulo}
+          </Link>
+        ))}
       </div>
 
       <div className="flex items-start gap-2">

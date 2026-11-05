@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
+import { Progresso } from './oferta/ChecklistOferta'
 import { Aviso, BolinhaCor, CaixaTabela, Carregando, Dica, Modal, SeletorCor, Selo, tabela, Vazio } from '../components/ds'
 import { useToast } from '../components/Toast'
 import { Botao, BotaoExcluir, Campo, entrada, TituloPagina } from '../components/ui'
@@ -20,7 +22,7 @@ import { AJUDA_CLASSES } from '../lib/ranking'
 import { ops } from '../lib/supabase'
 import { useCarregar } from '../lib/useCarregar'
 
-type Linha = Oferta & { cards: { count: number }[] }
+type Linha = Oferta & { cards: { count: number }[]; checklists?: { checklist_itens: { feito: boolean }[] }[] }
 
 export function SeloStatusOferta({ status }: { status: StatusOferta }) {
   const s = STATUS_OFERTA[status]
@@ -34,9 +36,10 @@ export function SeloStatusOferta({ status }: { status: StatusOferta }) {
 
 export function Ofertas() {
   const { dados, erro, recarregar } = useCarregar<Linha>(() =>
-    ops().from('ofertas').select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, cards(count)').order('nome'),
+    ops().from('ofertas').select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, cards(count), checklists(checklist_itens(feito))').order('nome'),
   )
   const [editando, setEditando] = useState<Linha | 'nova' | null>(null)
+  const navegar = useNavigate()
 
   return (
     <>
@@ -69,6 +72,11 @@ export function Ofertas() {
                 <th className={tabela.th}>Idioma</th>
                 <th className={tabela.th}>Status</th>
                 <th className={`${tabela.th} text-right`}>Cards</th>
+                <th className={`${tabela.th} w-40`}>
+                  <Dica conteudo="Itens feitos do checklist de lançamento da oferta." lado="esquerda">
+                    Checklist
+                  </Dica>
+                </th>
                 <th className={tabela.th}>
                   <span className="sr-only">Ações</span>
                 </th>
@@ -76,7 +84,7 @@ export function Ofertas() {
             </thead>
             <tbody className={tabela.tbody}>
               {dados.map((o) => (
-                <tr key={o.id} onClick={() => setEditando(o)} className="cursor-pointer hover:bg-surface-2">
+                <tr key={o.id} onClick={() => navegar(`/ofertas/${o.id}`)} className="cursor-pointer hover:bg-surface-2">
                   <td className={tabela.td}>
                     <BolinhaCor cor={o.cor} />
                   </td>
@@ -87,8 +95,20 @@ export function Ofertas() {
                     <SeloStatusOferta status={o.status} />
                   </td>
                   <td className={tabela.num}>{contagem(o.cards)}</td>
+                  <td className={tabela.td}>
+                    {(() => {
+                      const itens = (o.checklists ?? []).flatMap((c) => c.checklist_itens)
+                      return itens.length ? <Progresso feitos={itens.filter((i) => i.feito).length} total={itens.length} fina /> : <span className="text-xs text-muted">—</span>
+                    })()}
+                  </td>
                   <td className={`${tabela.td} text-right`}>
-                    <button onClick={() => setEditando(o)} className="text-muted hover:text-ink">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditando(o)
+                      }}
+                      className="text-muted hover:text-ink"
+                    >
                       Editar
                     </button>
                   </td>
@@ -113,7 +133,7 @@ export function Ofertas() {
   )
 }
 
-function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | null; onFechar: () => void; onSalvo: () => void }) {
+export function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | null; onFechar: () => void; onSalvo: () => void }) {
   const toast = useToast()
   const [nome, setNome] = useState(oferta?.nome ?? '')
   const [codigo, setCodigo] = useState(oferta?.codigo ?? '')

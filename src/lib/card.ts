@@ -41,6 +41,8 @@ export type CardDetalhe = {
   anexos: Anexo[]
   veiculacoes: VeiculacaoDetalhe[]
   checklists: Checklist[]
+  /** testes da oferta ligados a este card */
+  testes: { id: string; titulo: string; status: string }[]
 }
 
 const porOrdem = <T extends { ordem: number }>(a: T, b: T) => a.ordem - b.ordem
@@ -54,7 +56,8 @@ export async function buscarCardDetalhe(id: string): Promise<CardDetalhe | null>
        card_etiquetas(etiqueta_id), card_membros(user_id),
        anexos(id, titulo, url, ordem),
        veiculacoes(id, conta_id, status, meta_ad_id, nome_no_meta, data_status, motivo_rejeicao, categoria_rejeicao),
-       checklists(id, titulo, ordem, checklist_itens(id, checklist_id, texto, feito, ordem))`,
+       checklists(id, titulo, ordem, checklist_itens(id, checklist_id, texto, feito, ordem)),
+       testes:testes_oferta(id, titulo, status)`,
     )
     .eq('id', id)
     .maybeSingle()

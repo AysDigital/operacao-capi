@@ -10,6 +10,8 @@ import { Etiquetas } from './pages/config/Etiquetas'
 import { Login } from './pages/Login'
 import { Modelos } from './pages/Modelos'
 import { Ofertas } from './pages/Ofertas'
+import { PaginaOferta } from './pages/oferta/PaginaOferta'
+import { ModeloChecklistOferta } from './pages/config/ModeloChecklistOferta'
 import { Placeholder } from './pages/Placeholder'
 import { Ranking } from './pages/Ranking'
 import { IrParaUltimoQuadro, Quadros } from './pages/quadro/Quadros'
@@ -48,11 +50,13 @@ function Portao() {
         <Route path="/quadros/:id" element={<Quadros />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/ofertas" element={<Ofertas />} />
+        <Route path="/ofertas/:id" element={<PaginaOferta />} />
         <Route path="/modelos" element={<Modelos />} />
         <Route path="/config" element={<Configuracoes />}>
           <Route index element={<Navigate to="contas" replace />} />
           <Route path="contas" element={<ContasAnuncio />} />
           <Route path="etiquetas" element={<Etiquetas />} />
+          <Route path="checklist-oferta" element={<ModeloChecklistOferta />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
