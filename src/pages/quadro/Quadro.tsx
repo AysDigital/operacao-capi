@@ -17,6 +17,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { Aviso } from '../../components/ds'
 import { useToast } from '../../components/Toast'
 import { mensagemErro, type Etiqueta } from '../../lib/cadastros'
+import { EVENTO_METRICAS } from '../../lib/metricas'
+import { metricasDosCards } from '../../lib/ranking'
 import {
   buscarCards,
   gravarLocal,
@@ -30,6 +32,7 @@ import {
   type ContaQuadro,
   type Filtros,
   type Lista,
+  type MetricasCards,
   type OfertaQuadro,
 } from '../../lib/quadro'
 import { ops, supabase } from '../../lib/supabase'
@@ -82,6 +85,8 @@ export function Quadro({
   const [excluirCard, setExcluirCard] = useState<CardQuadro | null>(null)
   const [acaoVersao, setAcaoVersao] = useState<{ acao: 'versao' | 'variacoes' | 'duplicar'; cardId: string } | null>(null)
   const [verArquivados, setVerArquivados] = useState(false)
+  const [metricas, setMetricas] = useState<MetricasCards>(() => new Map())
+  const [mostrarMetricas, setMostrarMetricas] = useState<boolean>(() => lerLocal('quadro_metricas', true))
   // durante o arrasto: a ordem provisória (ids por lista) e o card arrastado
   const [arrasto, setArrasto] = useState<Record<string, string[]> | null>(null)
   const [ativo, setAtivo] = useState<string | null>(null)
@@ -139,6 +144,33 @@ export function Quadro({
     }
   }, [carregar, ofertaId])
 
+  // Números e classificação: ao abrir, quando muda algum ID de anúncio, depois de cada busca na Meta e a cada 10 minutos.
+  const idsAnuncios = useMemo(
+    () =>
+      (cards ?? [])
+        .flatMap((c) => c.veiculacoes.map((v) => v.meta_ad_id))
+        .filter(Boolean)
+        .sort()
+        .join(','),
+    [cards],
+  )
+  useEffect(() => {
+    let vivo = true
+    const buscar = () =>
+      metricasDosCards(ofertaId).then(
+        (m) => vivo && setMetricas(m),
+        (e: Error) => console.warn('Métricas do quadro:', e.message),
+      )
+    buscar()
+    const t = setInterval(buscar, 10 * 60_000)
+    window.addEventListener(EVENTO_METRICAS, buscar)
+    return () => {
+      vivo = false
+      clearInterval(t)
+      window.removeEventListener(EVENTO_METRICAS, buscar)
+    }
+  }, [ofertaId, idsAnuncios])
+
   // relógio do "3d" nos cards
   useEffect(() => {
     const t = setInterval(() => setAgora(Date.now()), 5 * 60_000)
@@ -151,10 +183,10 @@ export function Quadro({
 
   const colunas = useMemo(() => {
     const r: Record<string, string[]> = Object.fromEntries(ativas.map((l) => [l.id, []]))
-    const visiveis = (cards ?? []).filter((c) => passaNoFiltro(c, filtros)).sort((a, b) => a.posicao - b.posicao)
+    const visiveis = (cards ?? []).filter((c) => passaNoFiltro(c, filtros, metricas)).sort((a, b) => a.posicao - b.posicao)
     for (const c of visiveis) r[c.lista_id]?.push(c.id)
     return r
-  }, [cards, ativas, filtros])
+  }, [cards, ativas, filtros, metricas])
 
   /** Cards não arquivados de cada lista neste quadro, ignorando os filtros (é sobre eles que as ações da lista agem). */
   const naLista = useMemo(() => {
@@ -173,8 +205,10 @@ export function Quadro({
       etiquetas: new Map(etiquetas.map((e) => [e.id, e])),
       mostrarOferta: ofertaId === null,
       agora,
+      metricas,
+      mostrarMetricas,
     }),
-    [ofertas, contas, etiquetas, ofertaId, agora],
+    [ofertas, contas, etiquetas, ofertaId, agora, metricas, mostrarMetricas],
   )
 
   const ofertaFixa = ofertaId ? (ofertas.find((o) => o.id === ofertaId) ?? null) : null
@@ -207,7 +241,7 @@ export function Quadro({
       const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
       let error
       if (acao.tipo === 'ordenar') {
-        const ordenados = [...daLista].sort(ORDENACOES[acao.indice].comparar).map((c) => c.id)
+        const ordenados = [...daLista].sort((a, b) => ORDENACOES[acao.indice].comparar(a, b, metricas)).map((c) => c.id)
         const nova = new Map(ordenados.map((id, i) => [id, (i + 1) * 1024]))
         setCards((cs) => (cs ?? []).map((c) => (nova.has(c.id) ? { ...c, posicao: nova.get(c.id)! } : c)))
         ;({ error } = await ops().rpc('ordenar_cards', { p_ids: ordenados }))
@@ -230,7 +264,7 @@ export function Quadro({
       if (error) toast('ruim', mensagemErro(error))
       carregar()
     },
-    [naLista, listas, toast, carregar, onListasMudaram],
+    [naLista, listas, toast, carregar, onListasMudaram, metricas],
   )
 
   async function arquivarCard(c: CardQuadro, arquivado: boolean) {
@@ -372,6 +406,11 @@ export function Quadro({
         visiveis={cards ? visiveis : null}
         aoVivo={aoVivo}
         onArquivados={() => setVerArquivados(true)}
+        mostrarMetricas={mostrarMetricas}
+        onMostrarMetricas={(v) => {
+          setMostrarMetricas(v)
+          gravarLocal('quadro_metricas', v)
+        }}
       />
 
       {erro && (

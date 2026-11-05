@@ -1,5 +1,6 @@
 import type { Tom } from '../components/ds'
 import type { Idioma, StatusOferta } from './cadastros'
+import { roasDe, type Classe, type LinhaRanking } from './ranking'
 import { ops } from './supabase'
 
 export type Lista = { id: string; nome: string; ordem: number; cor: string | null; arquivada: boolean }
@@ -43,12 +44,25 @@ export const STATUS_VEICULACAO: Record<StatusVeiculacao, { nome: string; tom: To
   pausado: { nome: 'Pausado', tom: 'neutro', icone: '‖' },
 }
 
+/** Números do período de avaliação de cada card (por id do card). */
+export type MetricasCards = Map<string, LinhaRanking>
+
+/** Do maior para o menor; quem não tem o número vai para o fim. */
+const maiorPrimeiro = (a: number | null | undefined, b: number | null | undefined) => (b ?? -Infinity) - (a ?? -Infinity)
+const numero = (m: MetricasCards, c: CardQuadro, f: (l: LinhaRanking) => number | null) => {
+  const l = m.get(c.id)
+  return l ? f(l) : null
+}
+
 /** Opções de "Ordenar por" de uma lista. */
-export const ORDENACOES: { nome: string; comparar: (a: CardQuadro, b: CardQuadro) => number }[] = [
+export const ORDENACOES: { nome: string; comparar: (a: CardQuadro, b: CardQuadro, m: MetricasCards) => number }[] = [
   { nome: 'Nome (A–Z)', comparar: (a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }) },
   { nome: 'Mais novos primeiro', comparar: (a, b) => b.criado_em.localeCompare(a.criado_em) },
   { nome: 'Mais antigos primeiro', comparar: (a, b) => a.criado_em.localeCompare(b.criado_em) },
   { nome: 'Há mais tempo na lista', comparar: (a, b) => a.lista_desde.localeCompare(b.lista_desde) },
+  { nome: 'Maior ROAS', comparar: (a, b, m) => maiorPrimeiro(numero(m, a, roasDe), numero(m, b, roasDe)) },
+  { nome: 'Maior gasto', comparar: (a, b, m) => maiorPrimeiro(numero(m, a, (l) => l.gasto), numero(m, b, (l) => l.gasto)) },
+  { nome: 'Mais vendas', comparar: (a, b, m) => maiorPrimeiro(numero(m, a, (l) => l.vendas), numero(m, b, (l) => l.vendas)) },
 ]
 
 /** Listas onde o tempo parado não é problema (sem destaque amarelo/vermelho). */
@@ -146,6 +160,7 @@ export type Filtros = {
   tipo: TipoCard | ''
   conta: string
   status: StatusVeiculacao | ''
+  classe: Classe | ''
   vencedores: boolean
   arquivados: boolean
 }
@@ -157,6 +172,7 @@ export function lerFiltros(p: URLSearchParams): Filtros {
     tipo: (p.get('tipo') as TipoCard | null) ?? '',
     conta: p.get('conta') ?? '',
     status: (p.get('status') as StatusVeiculacao | null) ?? '',
+    classe: (p.get('classe') as Classe | null) ?? '',
     vencedores: p.get('vencedores') === '1',
     arquivados: p.get('arquivados') === '1',
   }
@@ -169,14 +185,16 @@ export function gravarFiltros(f: Filtros): URLSearchParams {
   if (f.tipo) p.set('tipo', f.tipo)
   if (f.conta) p.set('conta', f.conta)
   if (f.status) p.set('status', f.status)
+  if (f.classe) p.set('classe', f.classe)
   if (f.vencedores) p.set('vencedores', '1')
   if (f.arquivados) p.set('arquivados', '1')
   return p
 }
 
-export const temFiltro = (f: Filtros) => Boolean(f.busca || f.etiqueta || f.tipo || f.conta || f.status || f.vencedores || f.arquivados)
+export const temFiltro = (f: Filtros) => Boolean(f.busca || f.etiqueta || f.tipo || f.conta || f.status || f.classe || f.vencedores || f.arquivados)
 
-export function passaNoFiltro(c: CardQuadro, f: Filtros): boolean {
+export function passaNoFiltro(c: CardQuadro, f: Filtros, m: MetricasCards): boolean {
+  if (f.classe && (m.get(c.id)?.classe ?? 'sem_dados') !== f.classe) return false
   if (f.busca && !c.nome.toLowerCase().includes(f.busca.trim().toLowerCase())) return false
   if (f.etiqueta && !c.etiquetas.includes(f.etiqueta)) return false
   if (f.tipo && c.tipo !== f.tipo) return false

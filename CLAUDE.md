@@ -13,7 +13,8 @@ Usuários: May e Luciano.
   - Storage (autorizado em 28/10/2026, migration 005): bucket privado `operacao` e as políticas `operacao_*` em `storage.objects`, todas restritas a esse bucket. Imagens ficam em `cards/{id do card}/` e são guardadas no banco como `storage:{caminho}`;
   - leitura do dashboard (autorizada em 28/10/2026, migration 007), sempre por funções `security definer` do `ops` que conferem `ops.is_membro()`:
     - `public.meta_ad_accounts`: só número e nome da conta (`ops.importar_contas_dashboard()`), **nunca** `ads_token`;
-    - `public.purchases`: só valores agregados por anúncio (`ops.vendas_por_anuncio()`), **nunca** e-mail, telefone ou outro dado do comprador;
+    - `public.purchases`: só valores agregados por anúncio (`ops.vendas_por_anuncio()`, `ops.ranking()`), **nunca** e-mail, telefone ou outro dado do comprador;
+    - `public.purchases`: a data/hora da última venda registrada (`ops.ultima_venda()`, autorizada em 04/11/2026, migration 008), para o alerta de vendas paradas;
   - qualquer outro objeto fora do `ops`, ou outra leitura do `public`, precisa de nova autorização.
 - Acesso: só quem está em `ops.membros` (ativo) lê e escreve (`ops.is_membro()`). Estar logado não basta, porque o Auth é compartilhado com o dashboard.
 

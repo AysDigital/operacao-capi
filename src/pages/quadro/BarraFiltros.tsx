@@ -1,10 +1,11 @@
 import { Dica } from '../../components/ds'
 import type { Etiqueta } from '../../lib/cadastros'
+import { AJUDA_CLASSES, CLASSES, type Classe } from '../../lib/ranking'
 import { STATUS_VEICULACAO, temFiltro, TIPOS, type ContaQuadro, type Filtros, type StatusVeiculacao, type TipoCard } from '../../lib/quadro'
 
 const caixa = 'rounded-control border border-line bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-muted'
 
-const VAZIO: Filtros = { busca: '', etiqueta: '', tipo: '', conta: '', status: '', vencedores: false, arquivados: false }
+const VAZIO: Filtros = { busca: '', etiqueta: '', tipo: '', conta: '', status: '', classe: '', vencedores: false, arquivados: false }
 
 export function BarraFiltros({
   filtros,
@@ -14,6 +15,8 @@ export function BarraFiltros({
   visiveis,
   aoVivo,
   onArquivados,
+  mostrarMetricas,
+  onMostrarMetricas,
 }: {
   filtros: Filtros
   onFiltros: (f: Filtros) => void
@@ -22,6 +25,9 @@ export function BarraFiltros({
   visiveis: number | null
   aoVivo: boolean
   onArquivados: () => void
+  /** linha "gasto · ROAS · vendas" nos cards rodando */
+  mostrarMetricas: boolean
+  onMostrarMetricas: (v: boolean) => void
 }) {
   const mudar = <K extends keyof Filtros>(k: K, v: Filtros[K]) => onFiltros({ ...filtros, [k]: v })
   const destaque = (ativo: unknown) => (ativo ? 'border-accent text-accent-strong' : '')
@@ -77,9 +83,23 @@ export function BarraFiltros({
           ))}
         </select>
       </div>
+      <select
+        value={filtros.classe}
+        onChange={(e) => mudar('classe', e.target.value as Classe | '')}
+        aria-label="Classificação"
+        title={AJUDA_CLASSES}
+        className={`${caixa} ${destaque(filtros.classe)}`}
+      >
+        <option value="">Classificação</option>
+        {Object.entries(CLASSES).map(([valor, c]) => (
+          <option key={valor} value={valor}>
+            {c.icone} {c.nome}
+          </option>
+        ))}
+      </select>
       <label className="flex items-center gap-1.5 text-sm">
         <input type="checkbox" checked={filtros.vencedores} onChange={(e) => mudar('vencedores', e.target.checked)} className="accent-[var(--c-accent)]" />
-        Só vencedores
+        Só com troféu
       </label>
       <label className="flex items-center gap-1.5 text-sm">
         <input type="checkbox" checked={filtros.arquivados} onChange={(e) => mudar('arquivados', e.target.checked)} className="accent-[var(--c-accent)]" />
@@ -92,6 +112,14 @@ export function BarraFiltros({
       )}
 
       <div className="ml-auto flex items-center gap-3 text-sm text-muted">
+        <button
+          onClick={() => onMostrarMetricas(!mostrarMetricas)}
+          aria-pressed={mostrarMetricas}
+          title="Mostrar ou esconder a linha gasto · ROAS · vendas nos cards que estão rodando (período de avaliação da oferta)"
+          className={`rounded-control border px-2.5 py-1 hover:bg-surface-2 hover:text-ink ${mostrarMetricas ? 'border-accent text-accent-strong' : 'border-line'}`}
+        >
+          Métricas
+        </button>
         <button onClick={onArquivados} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
           Arquivados
         </button>

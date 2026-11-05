@@ -3,8 +3,8 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 007 rodadas pela usuária (007: 21 contas importadas do dashboard). **Próxima: 008.**
-- **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio).
+- **Banco:** migrations 001 a 007 rodadas pela usuária (007: 21 contas importadas do dashboard); 008 (regras e ranking) criada. **Próxima: 009.**
+- **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
   - etapa 1: login e menu;
@@ -14,6 +14,7 @@
   - etapa 4b: imagens;
   - etapa 5: versões, gerar variações, duplicar e família;
   - etapa 6: contas importadas, escolher o anúncio na lista da Meta, métricas no card e atualização automática.
+- **Em teste:** etapa 7 (regras por oferta, classificação, ranking e alertas de dados).
 - **Próximas etapas:**
   - modelos de card (substituem a lista "Em planejamento");
   - checklist de lançamento de oferta.
@@ -308,3 +309,38 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - ROAS = faturamento ÷ gasto sem IOF.
 - **Veiculação:** "Escolher na lista da Meta" abaixo do campo do ID. A lista vem já filtrada pelo AD/H/M do card (ex.: `ad27-h1-m1`), mas isso é só sugestão de busca: quem escolhe é a pessoa. Grava o ID e o `nome_no_meta`.
 - **Atualização automática:** ao abrir Quadros, se a última busca tem mais de 1 hora, busca de novo em segundo plano.
+
+## Etapa 7: vencedores em evidência e ranking (04/11/2026)
+
+**Migration 008 (`008_regras_e_ranking.sql`):**
+- `ops.ofertas` ganhou as regras de performance: `cpa_alvo` (R$), `roas_minimo`, `gasto_minimo` (R$) e `periodo_avaliacao` (7, 14 ou 30 dias, padrão 7).
+- `ops.classificar(...)`: a regra, num lugar só.
+  - Vencedor: gasto ≥ mínimo e (ROAS ≥ mínimo ou CPA ≤ alvo).
+  - Perdedor: gastou 2× o CPA alvo sem venda principal.
+  - Promissor: tem vendas, mas não atingiu o gasto mínimo.
+  - Em teste: gastando, sem dados suficientes, ou oferta sem regras.
+  - Sem dados: sem gasto.
+- `ops.ranking(oferta, dias, nivel)`: números por anúncio, hook (AD+H) ou família (AD), somando todas as veiculações. Só cards Ad não arquivados com algum ID de anúncio.
+  - `dias`: null = período de avaliação de cada oferta; 0 = tudo.
+  - A classificação usa sempre o período de avaliação da oferta.
+  - Lê `public.purchases` só agregado (security definer + `is_membro`).
+- `ops.ultima_venda()`: só a data/hora da última venda registrada (`max(created_at)`). Leitura nova do `public`, autorizada pela usuária no pedido da etapa 7 e registrada no CLAUDE.md.
+
+**Na tela:**
+- **Ofertas:** seção "Regras de performance" no modal (campos em branco = sem regra; aceita "1.500" e "1,5").
+- **Quadro:**
+  - selo 🔥 Vencedor (verde), ✨ Promissor (azul) ou ⚠️ Perdedor (vermelho); "Em teste" e "Sem dados" não têm selo;
+  - nos cards com veiculação rodando, a linha "R$ 320 · 2,4x · 5v" (período de avaliação da oferta);
+  - botão "Métricas" na barra mostra e esconde essas linhas (lembrado);
+  - filtro "Classificação". O antigo "Só vencedores" virou "Só com troféu" (o troféu continua manual e separado);
+  - "Ordenar por" ganhou maior ROAS, maior gasto e mais vendas;
+  - os números recarregam ao abrir, quando muda um ID de anúncio, depois de cada busca na Meta e a cada 10 minutos.
+- **Ranking (menu lateral, `/ranking`):**
+  - oferta (ou todas), período (7, 14, 30 dias ou tudo), agrupar por anúncio, hook ou família, classificação e busca (lembrados, menos a busca);
+  - tabela ordenável: classificação, gasto, faturamento, ROAS, vendas (+ upsell/downsell), CPA, CTR, hook rate, contas onde está rodando e lista; totais no rodapé;
+  - por anúncio: Abrir (vai para o quadro com o card aberto), Gerar variações (o modal da etapa 5) e o troféu;
+  - por hook ou família: "Ver anúncios" troca para anúncio, buscando pelo prefixo.
+- **Alertas (topo de Quadros e do Ranking, `AvisosDados.tsx`):**
+  - gasto nas últimas 24 h (hoje e ontem na Meta) sem venda registrada nas últimas 24 h: "Nenhuma venda registrada desde …";
+  - última busca na Meta com falha em alguma conta, ou a busca inteira falhou: mostra o motivo;
+  - a atualização automática das métricas (1 por hora) saiu de Quadros e passou para esse componente.

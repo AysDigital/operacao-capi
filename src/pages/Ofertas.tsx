@@ -1,18 +1,22 @@
 import { useState, type FormEvent } from 'react'
-import { Aviso, BolinhaCor, CaixaTabela, Carregando, Modal, SeletorCor, Selo, tabela, Vazio } from '../components/ds'
+import { Aviso, BolinhaCor, CaixaTabela, Carregando, Dica, Modal, SeletorCor, Selo, tabela, Vazio } from '../components/ds'
 import { useToast } from '../components/Toast'
 import { Botao, BotaoExcluir, Campo, entrada, TituloPagina } from '../components/ui'
 import {
   contagem,
   IDIOMAS,
+  lerNumero,
   mensagemErro,
+  numeroParaTexto,
   PALETA,
+  PERIODOS_AVALIACAO,
   soSigla,
   STATUS_OFERTA,
   type Idioma,
   type Oferta,
   type StatusOferta,
 } from '../lib/cadastros'
+import { AJUDA_CLASSES } from '../lib/ranking'
 import { ops } from '../lib/supabase'
 import { useCarregar } from '../lib/useCarregar'
 
@@ -30,7 +34,7 @@ export function SeloStatusOferta({ status }: { status: StatusOferta }) {
 
 export function Ofertas() {
   const { dados, erro, recarregar } = useCarregar<Linha>(() =>
-    ops().from('ofertas').select('id, nome, codigo, idioma, cor, status, cards(count)').order('nome'),
+    ops().from('ofertas').select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, cards(count)').order('nome'),
   )
   const [editando, setEditando] = useState<Linha | 'nova' | null>(null)
 
@@ -116,6 +120,10 @@ function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | null; onFe
   const [idioma, setIdioma] = useState<Idioma>(oferta?.idioma ?? 'EN')
   const [cor, setCor] = useState<string>(oferta?.cor ?? PALETA[0].hex)
   const [status, setStatus] = useState<StatusOferta>(oferta?.status ?? 'em_producao')
+  const [cpaAlvo, setCpaAlvo] = useState(numeroParaTexto(oferta?.cpa_alvo ?? null))
+  const [roasMinimo, setRoasMinimo] = useState(numeroParaTexto(oferta?.roas_minimo ?? null))
+  const [gastoMinimo, setGastoMinimo] = useState(numeroParaTexto(oferta?.gasto_minimo ?? null))
+  const [periodo, setPeriodo] = useState<number>(oferta?.periodo_avaliacao ?? 7)
   const [salvando, setSalvando] = useState(false)
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [tentou, setTentou] = useState(false)
@@ -125,13 +133,17 @@ function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | null; onFe
   const renomeia = oferta && cards > 0 && (codigo !== oferta.codigo || idioma !== oferta.idioma)
   const erroNome = tentou && !nome.trim() ? 'Informe o nome.' : null
   const erroCodigo = tentou && !codigo ? 'Informe a sigla.' : null
+  const regras = { cpa_alvo: lerNumero(cpaAlvo), roas_minimo: lerNumero(roasMinimo), gasto_minimo: lerNumero(gastoMinimo) }
+  const erroNumero = (v: number | null, zeroOk = false) =>
+    v !== null && (Number.isNaN(v) || v < 0 || (!zeroOk && v === 0)) ? 'Use um número maior que zero.' : null
+  const erros = { cpa: erroNumero(regras.cpa_alvo), roas: erroNumero(regras.roas_minimo), gasto: erroNumero(regras.gasto_minimo, true) }
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
     setTentou(true)
-    if (!nome.trim() || !codigo) return
+    if (!nome.trim() || !codigo || erros.cpa || erros.roas || erros.gasto) return
     setSalvando(true)
-    const campos = { nome: nome.trim(), codigo, idioma, cor, status }
+    const campos = { nome: nome.trim(), codigo, idioma, cor, status, ...regras, periodo_avaliacao: periodo }
     const { error } = oferta
       ? await ops().from('ofertas').update(campos).eq('id', oferta.id)
       : await ops().from('ofertas').insert(campos)
@@ -238,6 +250,34 @@ function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | null; onFe
           <p className="mb-2">Cor</p>
           <SeletorCor cores={PALETA} valor={cor} onMudar={setCor} />
         </div>
+
+        <fieldset className="space-y-3 rounded-control border border-line px-3 pt-2 pb-3">
+          <legend className="px-1 text-sm font-medium">
+            <Dica conteudo={`${AJUDA_CLASSES} Deixe em branco o que não quiser usar.`} lado="esquerda">
+              Regras de performance
+            </Dica>
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <Campo rotulo="CPA alvo (R$)" erro={erros.cpa}>
+              <input value={cpaAlvo} onChange={(e) => setCpaAlvo(e.target.value)} className={entrada} inputMode="decimal" placeholder="Ex.: 80" />
+            </Campo>
+            <Campo rotulo="ROAS mínimo" erro={erros.roas}>
+              <input value={roasMinimo} onChange={(e) => setRoasMinimo(e.target.value)} className={entrada} inputMode="decimal" placeholder="Ex.: 1,5" />
+            </Campo>
+            <Campo rotulo="Gasto mínimo (R$)" erro={erros.gasto}>
+              <input value={gastoMinimo} onChange={(e) => setGastoMinimo(e.target.value)} className={entrada} inputMode="decimal" placeholder="Ex.: 200" />
+            </Campo>
+            <Campo rotulo="Período de avaliação">
+              <select value={periodo} onChange={(e) => setPeriodo(Number(e.target.value))} className={entrada}>
+                {PERIODOS_AVALIACAO.map((d) => (
+                  <option key={d} value={d}>
+                    Últimos {d} dias
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          </div>
+        </fieldset>
 
         {confirmandoExclusao &&
           (cards > 0 ? (

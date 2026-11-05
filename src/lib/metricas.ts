@@ -22,9 +22,17 @@ async function chamarApi<T>(caminho: string, init?: RequestInit): Promise<T> {
 
 export type ResultadoBusca = { periodo: { desde: string; ate: string }; contas: number; linhas: number; falhas: { conta: string; erro: string }[] }
 
+/** Avisado (em window) depois de cada busca na Meta, para o quadro e os alertas recarregarem. */
+export const EVENTO_METRICAS = 'metricas-atualizadas'
+
 /** Busca as métricas na Meta e grava no banco. `completo`: últimos 90 dias. */
-export const atualizarMetricas = (completo = false) =>
-  chamarApi<ResultadoBusca>('/api/meta-metricas', { method: 'POST', body: JSON.stringify({ completo }) })
+export async function atualizarMetricas(completo = false) {
+  try {
+    return await chamarApi<ResultadoBusca>('/api/meta-metricas', { method: 'POST', body: JSON.stringify({ completo }) })
+  } finally {
+    window.dispatchEvent(new Event(EVENTO_METRICAS))
+  }
+}
 
 export async function ultimaBusca(): Promise<string | null> {
   const { data } = await ops().from('metricas_buscas').select('feita_em').order('feita_em', { ascending: false }).limit(1).maybeSingle()
@@ -32,15 +40,21 @@ export async function ultimaBusca(): Promise<string | null> {
 }
 
 const UMA_HORA = 3_600_000
-let buscando: Promise<unknown> | null = null
+let buscando: Promise<string | null> | null = null
 
-/** Se a última busca tem mais de 1 hora, busca de novo em segundo plano (uma de cada vez). */
-export async function manterMetricasFrescas() {
+/**
+ * Se a última busca tem mais de 1 hora, busca de novo em segundo plano (uma de cada vez).
+ * Devolve o erro, se a busca inteira falhou (sem chave, Meta fora do ar...).
+ */
+export async function manterMetricasFrescas(): Promise<string | null> {
   if (buscando) return buscando
   const ultima = await ultimaBusca()
-  if (ultima && Date.now() - new Date(ultima).getTime() < UMA_HORA) return
+  if (ultima && Date.now() - new Date(ultima).getTime() < UMA_HORA) return null
   buscando = atualizarMetricas()
-    .catch((e) => console.warn('Métricas da Meta:', (e as Error).message))
+    .then(
+      () => null,
+      (e: Error) => e.message,
+    )
     .finally(() => (buscando = null))
   return buscando
 }

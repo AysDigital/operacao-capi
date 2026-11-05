@@ -5,12 +5,14 @@ import { PilulaCor } from '../../components/ds'
 import type { Etiqueta } from '../../lib/cadastros'
 import { prazoCurto, situacaoPrazo } from '../../lib/card'
 import { formatarData } from '../../lib/format'
+import { CLASSES, resumoCurto, type Classe } from '../../lib/ranking'
 import {
   diasDesde,
   STATUS_VEICULACAO,
   tempoDesde,
   type CardQuadro,
   type ContaQuadro,
+  type MetricasCards,
   type OfertaQuadro,
   type StatusVeiculacao,
   type Veiculacao,
@@ -23,6 +25,32 @@ export type Contexto = {
   etiquetas: Map<string, Etiqueta>
   mostrarOferta: boolean
   agora: number
+  /** números e classificação de cada card (período de avaliação da oferta) */
+  metricas: MetricasCards
+  mostrarMetricas: boolean
+}
+
+const COR_CLASSE: Partial<Record<Classe, string>> = {
+  vencedor: 'bg-good-soft text-good',
+  promissor: 'bg-info-soft text-info',
+  perdedor: 'bg-bad-soft text-bad',
+}
+
+/** Selo da classificação automática ("Em teste" e "Sem dados" não aparecem). */
+export function SeloClasse({ classe }: { classe: Classe }) {
+  const c = CLASSES[classe]
+  if (!c.selo) return null
+  return (
+    <span
+      title={`Classificação automática: ${c.nome}`}
+      className={`inline-flex items-center gap-0.5 rounded px-1 py-px text-[11px] leading-4 font-semibold ${COR_CLASSE[classe]}`}
+    >
+      <span aria-hidden className="text-[10px]">
+        {c.icone}
+      </span>
+      {c.nome}
+    </span>
+  )
 }
 
 const COR_CONTA: Record<Exclude<StatusVeiculacao, 'nao_subido'>, string> = {
@@ -93,6 +121,9 @@ export const CartaoFrente = memo(function CartaoFrente({
   const dias = diasDesde(card.lista_desde, ctx.agora)
   const tomTempo = semPrazo ? 'text-muted' : dias > 5 ? 'bg-bad-soft text-bad' : dias > 2 ? 'bg-warn-soft text-warn' : 'text-muted'
   const etiquetas = card.etiquetas.map((id) => ctx.etiquetas.get(id)).filter((e) => e !== undefined)
+  const numeros = ctx.metricas.get(card.id)
+  const selo = numeros && CLASSES[numeros.classe].selo ? numeros.classe : null
+  const rodando = card.veiculacoes.some((v) => v.status === 'rodando')
 
   return (
     <div
@@ -100,8 +131,9 @@ export const CartaoFrente = memo(function CartaoFrente({
         arrastando ? 'rotate-2 shadow-lg ring-2 ring-accent/40' : 'hover:border-muted'
       } ${card.arquivado ? 'opacity-60' : ''}`}
     >
-      {(etiquetas.length > 0 || (ctx.mostrarOferta && oferta)) && (
+      {(etiquetas.length > 0 || (ctx.mostrarOferta && oferta) || selo) && (
         <div className="mb-1.5 flex flex-wrap gap-1">
+          {selo && <SeloClasse classe={selo} />}
           {ctx.mostrarOferta && oferta && <PilulaCor pequena texto={oferta.codigo} cor={oferta.cor} title={`${oferta.nome} (${oferta.idioma})`} />}
           {etiquetas.map((e) => (
             <PilulaCor key={e.id} pequena texto={e.nome} cor={e.cor} />
@@ -112,6 +144,12 @@ export const CartaoFrente = memo(function CartaoFrente({
       <p className={`text-sm leading-snug font-medium break-words ${card.tipo === 'ad' ? 'font-mono text-[13px]' : ''}`}>{card.nome}</p>
 
       <PilulasContas veiculacoes={card.veiculacoes} contas={ctx.contas} className="mt-1.5" />
+
+      {ctx.mostrarMetricas && rodando && numeros && (
+        <p className="mt-1 text-[11px] text-muted tabular-nums" title="Gasto · ROAS · vendas no período de avaliação da oferta, somando todas as contas">
+          {resumoCurto(numeros)}
+        </p>
+      )}
 
       <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-muted">
         <span

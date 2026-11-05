@@ -37,7 +37,26 @@ export type Oferta = {
   idioma: Idioma
   cor: string | null
   status: StatusOferta
+  /** regras de performance (null = sem regra) */
+  cpa_alvo: number | null
+  roas_minimo: number | null
+  gasto_minimo: number | null
+  periodo_avaliacao: 7 | 14 | 30
 }
+
+export const PERIODOS_AVALIACAO = [7, 14, 30] as const
+
+/** "1.234,56", "1234.5", "R$ 80" → número; vazio → null; inválido → NaN. */
+export function lerNumero(s: string): number | null {
+  let t = s.replace(/R\$|\s|x/gi, '')
+  if (!t) return null
+  // vírgula decimal, ou ponto de milhar ("1.500")
+  if (t.includes(',') || /^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '').replace(',', '.')
+  return /^\d+(\.\d+)?$/.test(t) ? Number(t) : NaN
+}
+
+/** Número → texto para editar ("1234,5"); null → "". */
+export const numeroParaTexto = (n: number | null) => (n === null ? '' : String(Number(n)).replace('.', ','))
 
 export type ContaAnuncio = {
   id: string

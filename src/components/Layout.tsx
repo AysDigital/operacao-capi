@@ -6,6 +6,7 @@ import { useTema, type Tema } from '../lib/theme'
 /** Ícones simples de traço (16×16), um por tela. */
 const ICONES: Record<string, ReactNode> = {
   '/quadros': <path d="M2.5 3h3v10h-3ZM6.5 3h3v6.5h-3ZM10.5 3h3v8.5h-3Z" />,
+  '/ranking': <path d="M2.5 13.5h11M4 13.5V9m4 4.5V3.5m4 10V6.5" />,
   '/ofertas': <path d="M2.5 2.5h5l6 6-5 5-6-6Zm3 3h.01" />,
   '/veiculacoes': <path d="M3 6.5v3h2l4 3v-9l-4 3Zm8.5-1a3.5 3.5 0 0 1 0 5" />,
   '/modelos': <path d="M5.5 5.5h7v8h-7ZM3.5 10.5v-8h7" />,
@@ -14,6 +15,7 @@ const ICONES: Record<string, ReactNode> = {
 
 export const TELAS = [
   { caminho: '/quadros', titulo: 'Quadros' },
+  { caminho: '/ranking', titulo: 'Ranking' },
   { caminho: '/ofertas', titulo: 'Ofertas' },
   { caminho: '/veiculacoes', titulo: 'Veiculações' },
   { caminho: '/modelos', titulo: 'Modelos' },
@@ -56,7 +58,8 @@ export function Layout() {
   const [recolhido, setRecolhido] = useState(lerRecolhido)
   const email = 'session' in auth ? auth.session.user.email : ''
   // o quadro usa a largura toda da tela
-  const largo = useLocation().pathname.startsWith('/quadros')
+  const caminho = useLocation().pathname
+  const largo = caminho.startsWith('/quadros') || caminho.startsWith('/ranking')
 
   useEffect(() => {
     try {

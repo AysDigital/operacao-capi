@@ -4,8 +4,8 @@ import { Aviso, BolinhaCor, Carregando, Vazio } from '../../components/ds'
 import { Botao } from '../../components/ui'
 import type { Etiqueta } from '../../lib/cadastros'
 import { gravarFiltros, gravarLocal, lerFiltros, lerLocal, type ContaQuadro, type Filtros, type Lista, type OfertaQuadro } from '../../lib/quadro'
-import { manterMetricasFrescas } from '../../lib/metricas'
 import { ops } from '../../lib/supabase'
+import { AvisosDados } from './AvisosDados'
 import { Quadro } from './Quadro'
 
 const CHAVE_ULTIMO = 'ultimo_quadro'
@@ -15,9 +15,9 @@ export function IrParaUltimoQuadro() {
   return <Navigate to={`/quadros/${lerLocal(CHAVE_ULTIMO, 'todas')}`} replace />
 }
 
-type Base = { listas: Lista[]; ofertas: OfertaQuadro[]; contas: ContaQuadro[]; etiquetas: Etiqueta[] }
+export type Base = { listas: Lista[]; ofertas: OfertaQuadro[]; contas: ContaQuadro[]; etiquetas: Etiqueta[] }
 
-async function buscarBase(): Promise<Base> {
+export async function buscarBase(): Promise<Base> {
   const [listas, ofertas, contas, etiquetas] = await Promise.all([
     ops().from('listas').select('id, nome, ordem, cor, arquivada').order('ordem'),
     ops().from('ofertas').select('id, nome, codigo, idioma, cor, status').order('nome'),
@@ -82,7 +82,6 @@ export function Quadros() {
 
   useEffect(() => {
     recarregarBase()
-    manterMetricasFrescas()
   }, [recarregarBase])
 
   const ofertaId = id === 'todas' ? null : id
@@ -107,6 +106,7 @@ export function Quadros() {
 
   return (
     <>
+      <AvisosDados />
       <SeletorQuadro ofertas={base.ofertas} atual={id} busca={busca} />
       {existe ? (
         <Quadro
