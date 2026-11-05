@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 014 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário. **Próxima: 015.**
+- **Banco:** migrations 001 a 015 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello. **Próxima: 016.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -16,7 +16,7 @@
   - etapa 6: contas importadas, escolher o anúncio na lista da Meta, métricas no card e atualização automática;
   - etapa 7: regras por oferta, selos, linha de números, filtro e ordenação no quadro, ranking e alertas (testada com os dados falsos da 009).
 - **Próximas etapas:**
-  - cards dos ads rodando criados (011); falta trazer o restante do quadro do Trello;
+  - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
   - modelos de card (substituem a lista "Em planejamento");
   - checklist de lançamento de oferta.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
@@ -347,3 +347,13 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - a atualização automática das métricas (1 por hora) saiu de Quadros e passou para esse componente.
 
 **Teste (migration 009, temporária):** oferta "Oferta de teste" (TESTE-PT) com 7 cards, IDs de anúncio falsos (999000000000…), métricas falsas em `ops.metricas_anuncio_dia` e vendas falsas em `ops.vendas_teste` (o dashboard não foi tocado). `ops.ranking` e `ops.vendas_por_anuncio` somavam essa tabela. Aprovado pela usuária em 04/11/2026. A migration 010 (rodada em 04/11/2026) voltou as duas funções à versão da 007/008 e apagou tudo.
+
+## Etapa 8: importação do Trello (04–05/11/2026)
+
+- **011:** 39 cards dos ads ativos na Meta, com veiculações já ligadas ao `meta_ad_id` (PC-EN na Nina C22 e Boulevard C23; GE-ES na Cecilia C3).
+- **012:** 34 cards de Aguardando edição e Revisão [Edição]; os das listas 🚨 ganharam a etiqueta "Urgente".
+- **013:** PC pausado na Nina (veiculações mantidas como "Pausado"); AD12 rejeitado na Nina; 9 PC sem Boulevard foram para "Pronto pra subir".
+- **014:** quando a veiculação sai de "Rejeitado" (ou é removida rejeitada), a rejeição vira comentário no card e o motivo/categoria são limpos.
+- **015:** 88 cards não arquivados de Standby e Criação (PC-EN 82, GE-EN 4, PC-FR 1, PC-IT 1), com links e checklists; criou PC-FR, PC-IT e GE-EN. Histórico: uma linha "importou do Trello" por card.
+- **Descartado por decisão da usuária:** cards arquivados, a lista Em planejamento, cards sem oferta, as ofertas antigas (Western Wall, Gelatina bariátrica, Nossa Senhora, Arcanjo Gabriel, Adesivo Emagrecedor, Aprendendo Brincando), comentários e imagens hospedadas no Trello.
+- O JSON exportado (`6l4PLnjs - ays-criativos.json`) fica só na máquina (no `.gitignore`).
