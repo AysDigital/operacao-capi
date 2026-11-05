@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 010 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). **Próxima: 011.**
+- **Banco:** migrations 001 a 011 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011: cards dos 39 ads rodando em 04/11. **Próxima: 012.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -16,7 +16,7 @@
   - etapa 6: contas importadas, escolher o anúncio na lista da Meta, métricas no card e atualização automática;
   - etapa 7: regras por oferta, selos, linha de números, filtro e ordenação no quadro, ranking e alertas (testada com os dados falsos da 009).
 - **Próximas etapas:**
-  - criar os cards dos ads reais a partir da lista da usuária;
+  - cards dos ads rodando criados (011); falta trazer o restante do quadro do Trello;
   - modelos de card (substituem a lista "Em planejamento");
   - checklist de lançamento de oferta.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.

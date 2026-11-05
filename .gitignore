@@ -3,3 +3,6 @@ dist
 .env
 .env.local
 .env*.local
+
+# exportação do Trello (dados internos, não vai para o Git)
+6l4PLnjs*.json
