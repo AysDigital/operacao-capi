@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 015 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello. **Próxima: 016.**
+- **Banco:** migrations 001 a 016 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card. **Próxima: 017.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -17,7 +17,7 @@
   - etapa 7: regras por oferta, selos, linha de números, filtro e ordenação no quadro, ranking e alertas (testada com os dados falsos da 009).
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
-  - modelos de card (substituem a lista "Em planejamento");
+  - modelos de card: feito na etapa 9 (016);
   - checklist de lançamento de oferta.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
 
@@ -357,3 +357,16 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
 - **015:** 88 cards não arquivados de Standby e Criação (PC-EN 82, GE-EN 4, PC-FR 1, PC-IT 1), com links e checklists; criou PC-FR, PC-IT e GE-EN. Histórico: uma linha "importou do Trello" por card.
 - **Descartado por decisão da usuária:** cards arquivados, a lista Em planejamento, cards sem oferta, as ofertas antigas (Western Wall, Gelatina bariátrica, Nossa Senhora, Arcanjo Gabriel, Adesivo Emagrecedor, Aprendendo Brincando), comentários e imagens hospedadas no Trello.
 - O JSON exportado (`6l4PLnjs - ays-criativos.json`) fica só na máquina (no `.gitignore`).
+
+## Etapa 9: modelos de card (05/11/2026)
+
+- **Migration 016:** `ops.modelos_card` ganhou `oferta_id` (vazio = todas), `lista_id` (lista padrão), `prazo_dias` (prazo = dia da criação + N) e `atualizado_em`.
+  - `ops.criar_de_modelo`: cria de 1 a 10 cards numa transação. Ad sem AD informado usa os próximos AD livres da oferta (H1-M1), com a trava por oferta da etapa 5; com AD informado, a trava por família.
+  - Etiquetas, anexos com link e checklists (itens desmarcados) vão para o card. A cópia roda com `ops.silencio`; o histórico fica com uma linha: "criou o card em X a partir do modelo Y".
+  - `ops.salvar_como_modelo`: cria o modelo a partir de um card (tipo, formato, lista atual, etiquetas, descrição, anexos de link, checklists com itens).
+- **Página Modelos** (`src/pages/Modelos.tsx`): tabela com nome, oferta, tipo, formato e lista padrão; criar, editar, duplicar e excluir (com confirmação).
+- **No quadro:**
+  - "+ Adicionar card": seletor de modelo (lembra o último) e quantidade para Ad, com prévia dos nomes;
+  - "+ Novo a partir de modelo" na barra (`ModelosQuadro.tsx`);
+  - "Salvar como modelo…" no clique-direito e no modal do card.
+- Imagens da descrição do modelo são copiadas para a pasta do card novo (`copiarImagensParaCards`).
