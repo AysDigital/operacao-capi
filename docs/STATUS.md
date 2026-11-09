@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 018 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta. **Próxima: 019.**
+- **Banco:** migrations 001 a 018 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, **aguardando a usuária rodar**). **Próxima: 020.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -18,7 +18,8 @@
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
   - modelos de card: feito na etapa 9 (016);
-  - checklist de lançamento de oferta.
+  - checklist de lançamento de oferta: feito na etapa 10 (017/018);
+  - ativos: etapa 11 (019); vida útil por fornecedor e histórico de quedas ficam para a próxima etapa.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
 
 ## Etapa 1: fundação (27/10/2026)
@@ -386,3 +387,21 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - Testes: quadro por status com arrastar entre colunas; o card ligado mostra "Teste: …" no cabeçalho.
 - **Lista de ofertas:** linha abre a página; coluna com o progresso do checklist.
 - **Configurações → Checklist de oferta:** editor do modelo (vale só para ofertas novas).
+
+## Etapa 11: ativos (09/11/2026)
+
+- **Regra:** cada ativo tem UMA dona (BM ou perfil) e pode estar compartilhado com outras BMs e perfis. Só se perde numa queda quando não sobra nenhum acesso ativo (de BM ou perfil que não esteja caído).
+- **Migration 019:**
+  - tabelas `fornecedores`, `perfis`, `bms`, `paginas`, `pixels`, `dominios`, `cartoes` (só apelido, 4 últimos dígitos, banco e PF/PJ). Nenhum campo de senha, 2FA, cookie ou token; do gerenciador de senhas, só o nome do item;
+  - `contas_anuncio` ganha moeda, limite de gasto, cartão, status (ativa/restrita/desativada) e data de criação. `ativa` acompanha o status (só "desativada" tira a conta dos quadros); `bm_nome` acompanha a BM dona;
+  - `ops.acessos`: um ativo (perfil, BM, conta, página, pixel) e um titular (BM ou perfil) por linha, papel dona/compartilhado, nível, desde, ativo. No máximo uma dona ativa por ativo; o mesmo titular não repete;
+  - `ops.ofertas_ativos`: páginas, pixels e domínios de cada oferta;
+  - `ops.ativos_status_log` (escrita só pelos gatilhos): toda mudança de status, com motivo e data. Na queda (restrita, desativada, checkpoint, restrito, morto), os acessos que a BM/perfil dá ficam inativos, guardados;
+  - `ops.simular_queda(tipo, id)` (em cascata) e `ops.mudar_status_ativo(tipo, id, status, motivo, data)`;
+  - BMs criadas a partir do campo "BM" das contas existentes, cada uma como dona das suas contas.
+- **Página Ativos** (`/ativos`, `src/pages/Ativos.tsx`, `src/pages/ativos/`, `src/lib/ativos.ts`): abas Perfis | BMs | Contas | Páginas | Pixels | Domínios | Cartões | Fornecedores, cada uma com busca, filtro de status, criar, editar e excluir (só sem ligações). No topo, aviso dos ativos que dependem de uma única BM ou perfil.
+  - Painel lateral: dados, dona e compartilhamentos (adicionar, remover, tornar dona), o que a BM/perfil possui e acessa, ofertas e ads rodando, histórico de status.
+  - "E se cair?" (BMs e perfis): perdidos × seguros (com "via"), ofertas e ads afetados. Mudar status pede motivo e data; numa queda, mostra antes o que vai se perder e depois o resultado como alerta.
+  - Status com as mesmas cores em todo lugar: verde ok, amarelo atenção, vermelho caído, cinza morto.
+- **Contas de anúncio** saíram de Configurações para Ativos → Contas (com "Importar do dashboard"); `/config/contas` redireciona.
+- **Página da oferta:** nova aba Ativos (contas pelas veiculações; páginas, pixels e domínios ligados).

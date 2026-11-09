@@ -8,6 +8,7 @@ import { buscarOferta, type OfertaCompleta } from '../../lib/oferta'
 import type { ContaQuadro, Lista, OfertaQuadro } from '../../lib/quadro'
 import { ops } from '../../lib/supabase'
 import { ModalOferta } from '../Ofertas'
+import { AtivosOferta } from './AtivosOferta'
 import { ChecklistOferta } from './ChecklistOferta'
 import { TestesOferta } from './TestesOferta'
 import { VisaoGeral } from './VisaoGeral'
@@ -16,6 +17,7 @@ const ABAS = [
   { valor: 'geral', nome: 'Visão geral' },
   { valor: 'checklist', nome: 'Checklist' },
   { valor: 'testes', nome: 'Testes' },
+  { valor: 'ativos', nome: 'Ativos' },
 ] as const
 type Aba = (typeof ABAS)[number]['valor']
 
@@ -143,6 +145,7 @@ export function PaginaOferta() {
       )}
       {aba === 'checklist' && <ChecklistOferta ofertaId={oferta.id} membros={base.membros} onMudou={mudou} />}
       {aba === 'testes' && <TestesOferta ofertaId={oferta.id} onMudou={mudou} />}
+      {aba === 'ativos' && <AtivosOferta ofertaId={oferta.id} />}
 
       {editando && (
         <ModalOferta

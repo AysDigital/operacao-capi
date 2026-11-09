@@ -4,8 +4,8 @@ import { Layout, TELAS } from './components/Layout'
 import { ToastProvider } from './components/Toast'
 import { Botao, TelaCentral } from './components/ui'
 import { supabaseConfigurado } from './lib/supabase'
+import { Ativos } from './pages/Ativos'
 import { Configuracoes } from './pages/Configuracoes'
-import { ContasAnuncio } from './pages/config/ContasAnuncio'
 import { Etiquetas } from './pages/config/Etiquetas'
 import { Login } from './pages/Login'
 import { Modelos } from './pages/Modelos'
@@ -42,7 +42,7 @@ function Portao() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        {TELAS.filter((t) => !['/quadros', '/ranking', '/ofertas', '/modelos', '/config'].includes(t.caminho)).map((t) => (
+        {TELAS.filter((t) => !['/quadros', '/ranking', '/ofertas', '/ativos', '/modelos', '/config'].includes(t.caminho)).map((t) => (
           <Route key={t.caminho} path={t.caminho} element={<Placeholder titulo={t.titulo} />} />
         ))}
         <Route path="/" element={<IrParaUltimoQuadro />} />
@@ -51,10 +51,11 @@ function Portao() {
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/ofertas/:id" element={<PaginaOferta />} />
+        <Route path="/ativos" element={<Ativos />} />
         <Route path="/modelos" element={<Modelos />} />
         <Route path="/config" element={<Configuracoes />}>
-          <Route index element={<Navigate to="contas" replace />} />
-          <Route path="contas" element={<ContasAnuncio />} />
+          <Route index element={<Navigate to="etiquetas" replace />} />
+          <Route path="contas" element={<Navigate to="/ativos?aba=contas" replace />} />
           <Route path="etiquetas" element={<Etiquetas />} />
           <Route path="checklist-oferta" element={<ModeloChecklistOferta />} />
         </Route>

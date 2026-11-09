@@ -2,7 +2,6 @@ import { NavLink, Outlet } from 'react-router'
 import { TituloPagina } from '../components/ui'
 
 const ABAS = [
-  { caminho: '/config/contas', titulo: 'Contas de anúncio' },
   { caminho: '/config/etiquetas', titulo: 'Etiquetas' },
   { caminho: '/config/checklist-oferta', titulo: 'Checklist de oferta' },
 ]
