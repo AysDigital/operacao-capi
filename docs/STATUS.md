@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 016 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card. **Próxima: 017.**
+- **Banco:** migrations 001 a 017 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas. **Próxima: 018.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -370,3 +370,19 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - "+ Novo a partir de modelo" na barra (`ModelosQuadro.tsx`);
   - "Salvar como modelo…" no clique-direito e no modal do card.
 - Imagens da descrição do modelo são copiadas para a pasta do card novo (`copiarImagensParaCards`).
+
+## Etapa 10: módulo de ofertas (09/11/2026)
+
+- **Migration 017:**
+  - `ofertas.anotacoes`, tabela `ops.ofertas_links` (vendas, checkout, Drive, membros, outro);
+  - `ops.testes_oferta` (tipo, hipótese, status, início/fim automáticos, resultado, aprendizado, card ligado);
+  - checklist de lançamento: `modelos_checklist_oferta` preenchido (11 seções, 36 itens); `ops.criar_checklist_oferta` e gatilho que copia o modelo em toda oferta nova; itens com `prazo` e `nota`;
+  - histórico da oferta: `ops.atividades` com `card_id` nulo, via `ops.registrar_oferta` (itens marcados/desmarcados, testes criados, status e resultado);
+  - `ops.veiculacoes_log` agora atualiza a categoria/motivo da última rejeição no histórico (a view `v_rejeicoes` passa a contar por categoria);
+  - `ops.vendas_por_dia` (leitura nova de `public.purchases`, só totais por dia, autorizada pela usuária ao rodar a 017) e `ops.cobertura_oferta` (gasto das contas da oferta sem card).
+- **Página da oferta** (`/ofertas/:id`, `src/pages/oferta/`): cabeçalho com status editável, "Editar oferta" e "Abrir quadro"; abas Visão geral | Checklist | Testes (`?aba=`).
+  - Visão geral: período 7/14/30/tudo, cartões (gasto, faturamento, ROAS, vendas, CPA, taxa de upsell, reembolsos), gráficos diários de gasto × faturamento e de ROAS (`GraficoLinhas.tsx`, SVG, cores `--c-series-1/2` validadas), produção, top 5 com "Abrir" e "Gerar variações", aviso de cobertura, links, anotações e histórico.
+  - Checklist: seções recolhíveis com progresso, quem/quando marcou, prazo e anotação por item, adicionar/renomear/reordenar/excluir.
+  - Testes: quadro por status com arrastar entre colunas; o card ligado mostra "Teste: …" no cabeçalho.
+- **Lista de ofertas:** linha abre a página; coluna com o progresso do checklist.
+- **Configurações → Checklist de oferta:** editor do modelo (vale só para ofertas novas).
