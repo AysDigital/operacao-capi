@@ -15,6 +15,7 @@ Usuários: May e Luciano.
     - `public.meta_ad_accounts`: só número e nome da conta (`ops.importar_contas_dashboard()`), **nunca** `ads_token`;
     - `public.purchases`: só valores agregados por anúncio (`ops.vendas_por_anuncio()`, `ops.ranking()`), **nunca** e-mail, telefone ou outro dado do comprador;
     - `public.purchases`: a data/hora da última venda registrada (`ops.ultima_venda()`, autorizada em 04/11/2026, migration 008), para o alerta de vendas paradas;
+    - `public.purchases`: totais por dia (quantidade e valor por dia, tipo e status) dos anúncios informados (`ops.vendas_por_dia()`, autorizada em 09/11/2026, migration 017), para o gráfico diário da oferta, **nunca** dados do comprador;
   - qualquer outro objeto fora do `ops`, ou outra leitura do `public`, precisa de nova autorização.
 - Acesso: só quem está em `ops.membros` (ativo) lê e escreve (`ops.is_membro()`). Estar logado não basta, porque o Auth é compartilhado com o dashboard.
 
