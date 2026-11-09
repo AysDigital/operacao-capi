@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 018 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, **aguardando a usuária rodar**). **Próxima: 020.**
+- **Banco:** migrations 001 a 019 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona). **Próxima: 020.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
