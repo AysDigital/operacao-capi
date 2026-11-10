@@ -187,6 +187,40 @@ export function alcance(inv: Inventario, tipo: TipoTitular, id: string) {
   return r
 }
 
+/**
+ * Posse e acesso de uma BM ou perfil, descendo pela cadeia.
+ * possui: o que ele tem como dona, mais o que as BMs dele têm como dona (e assim por diante).
+ * acessa: o resto do que ele alcança (compartilhado com ele ou com as BMs dele).
+ */
+export function posseEAcesso(inv: Inventario, tipo: TipoTitular, id: string) {
+  const vistos = new Set<string>([`${tipo}:${id}`])
+  const fila: [TipoTitular, string][] = [[tipo, id]]
+  const possui: { tipo: TipoAcessavel; id: string }[] = []
+  while (fila.length) {
+    const [t, i] = fila.shift()!
+    for (const a of acessosDoTitular(inv, t, i)) {
+      const k = `${a.ativo_tipo}:${a.ativo_id}`
+      if (!a.ativo || a.papel !== 'dona' || vistos.has(k)) continue
+      vistos.add(k)
+      possui.push({ tipo: a.ativo_tipo, id: a.ativo_id })
+      if (a.ativo_tipo === 'bm' || a.ativo_tipo === 'perfil') fila.push([a.ativo_tipo, a.ativo_id])
+    }
+  }
+  const acessa = alcance(inv, tipo, id).filter((x) => !vistos.has(`${x.tipo}:${x.id}`))
+  return { possui, acessa }
+}
+
+/** "1 BM · 3 contas · 2 páginas" */
+export function resumoPorTipo(itens: { tipo: TipoAcessavel }[]) {
+  return ACESSAVEIS.map((t) => {
+    const q = itens.filter((x) => x.tipo === t).length
+    const nome = q === 1 ? TIPOS[t].um : TIPOS[t].varios
+    return q ? `${q} ${t === 'bm' ? nome : nome.toLowerCase()}` : null
+  })
+    .filter(Boolean)
+    .join(' · ')
+}
+
 /** Quantas ligações impedem excluir o ativo (acessos, ofertas, veiculações, uso por outros cadastros). */
 export function ligacoes(inv: Inventario, tipo: TipoAtivo, r: Registro): string[] {
   const l: string[] = []

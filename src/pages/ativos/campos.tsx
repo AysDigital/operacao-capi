@@ -2,18 +2,20 @@ import type { ReactNode } from 'react'
 import { Dica, Selo } from '../../components/ds'
 import {
   acessosDoAtivo,
-  acessosDoTitular,
   acessoValido,
   donaDe,
   infoStatus,
   nomeAtivo,
   nomeDe,
   ORIGENS,
+  posseEAcesso,
+  resumoPorTipo,
   STATUS_ATIVO,
   type Inventario,
   type Registro,
   type TipoAtivo,
   type TipoComStatus,
+  type TipoTitular,
 } from '../../lib/ativos'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
 
@@ -223,15 +225,19 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
         lado="direita"
         conteudo={
           papel === 'dona'
-            ? `Quantos ativos ${quem} possui: é a dona deles (proprietária). Se cair, eles só continuam acessíveis se estiverem compartilhados com outra BM ou perfil.`
-            : `Quantos ativos ${quem} acessa sem ser a dona: foram compartilhados com ela por outra BM ou perfil. É o que funciona como reserva se a dona cair.`
+            ? `Tudo o que ${quem} tem como dona${tipo === 'perfil' ? ', somando o que as BMs dele possuem (contas, páginas, pixels)' : ''}. Se cair, esses ativos só continuam acessíveis se estiverem compartilhados com outra BM ou perfil.`
+            : `Ativos que ${quem} alcança sem ser a dona: foram compartilhados com ${tipo === 'perfil' ? 'ele ou com as BMs dele' : 'ela'}. É o que funciona como reserva quando a dona deles cai.`
         }
       >
         {papel === 'dona' ? 'Possui' : 'Acessa'}
       </Dica>
     ),
     classe: num,
-    valor: (r) => acessosDoTitular(inv, tipo, r.id).filter((a) => a.ativo && a.papel === papel).length || '—',
+    valor: (r) => {
+      const pa = posseEAcesso(inv, tipo as TipoTitular, r.id)
+      const itens = papel === 'dona' ? pa.possui : pa.acessa
+      return itens.length ? <span title={resumoPorTipo(itens)}>{itens.length}</span> : '—'
+    },
   })
   const fornecedor: Coluna = {
     rotulo: 'Fornecedor',
