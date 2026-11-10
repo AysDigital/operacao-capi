@@ -1,9 +1,9 @@
 # Operação Capi — Status do projeto
 
-## Situação atual (04/11/2026)
+## Situação atual (10/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 020 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (rodada em 10/11/2026); 021: importação do inventário de ativos (rodada em 10/11/2026: 10 perfis, 13 BMs, 35 contas, 21 páginas, 51 pixels, 308 acessos); 022: tira o perfil "Grupo Capi" (rodada em 10/11/2026: 9 perfis, 304 acessos); 023: pessoas "inativas" das BMs contam como acesso (rodada em 10/11/2026: 10 perfis, 312 acessos); 024: Nicoly na BM Boulevard (rodada em 10/11/2026: 313 acessos); 025: apaga ativos antigos e completa IDs pela planilha (rodada em 10/11/2026: 16 páginas, 15 pixels, todas as contas e BMs com ID). Onde a planilha e o documento discordam, vale o documento (decisão da usuária); 026: status dos pixels, fornecedor dos perfis e apelidos AC das contas (rodada em 10/11/2026: 35 contas com apelido novo); 027: só os pixels GE e Pontos de Comando ficam (rodada em 10/11/2026); 028: quadro de uso das contas (rodada em 10/11/2026). **Próxima: 029.**
+- **Banco:** migrations 001 a 028 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (rodada em 10/11/2026); 021: importação do inventário de ativos (rodada em 10/11/2026: 10 perfis, 13 BMs, 35 contas, 21 páginas, 51 pixels, 308 acessos); 022: tira o perfil "Grupo Capi" (rodada em 10/11/2026: 9 perfis, 304 acessos); 023: pessoas "inativas" das BMs contam como acesso (rodada em 10/11/2026: 10 perfis, 312 acessos); 024: Nicoly na BM Boulevard (rodada em 10/11/2026: 313 acessos); 025: apaga ativos antigos e completa IDs pela planilha (rodada em 10/11/2026: 16 páginas, 15 pixels, todas as contas e BMs com ID). Onde a planilha e o documento discordam, vale o documento (decisão da usuária); 026: status dos pixels, fornecedor dos perfis e apelidos AC das contas (rodada em 10/11/2026: 35 contas com apelido novo); 027: só os pixels GE e Pontos de Comando ficam (rodada em 10/11/2026); 028: quadro de uso das contas (rodada em 10/11/2026). **Próxima: 029.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -14,12 +14,17 @@
   - etapa 4b: imagens;
   - etapa 5: versões, gerar variações, duplicar e família;
   - etapa 6: contas importadas, escolher o anúncio na lista da Meta, métricas no card e atualização automática;
-  - etapa 7: regras por oferta, selos, linha de números, filtro e ordenação no quadro, ranking e alertas (testada com os dados falsos da 009).
+  - etapa 7: regras por oferta, selos, linha de números, filtro e ordenação no quadro, ranking e alertas (testada com os dados falsos da 009);
+  - etapa 8: importação do Trello;
+  - etapa 9: modelos de card;
+  - etapa 10: módulo de ofertas (página da oferta, checklist, testes);
+  - etapa 11 (10/11/2026): ativos, com queda manual, inventário importado do documento de contingência (021–025), nomes das contas pela Meta, apelidos AC, grupos ativos/desativados, Possui/Acessa pela cadeia, só os pixels GE e Pontos de Comando (027) e o quadro manual de uso das contas (028).
+- **Inventário hoje:** 10 perfis, 13 BMs, 35 contas, 16 páginas, 2 pixels.
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
   - modelos de card: feito na etapa 9 (016);
   - checklist de lançamento de oferta: feito na etapa 10 (017/018);
-  - ativos: etapa 11 (019); vida útil por fornecedor e histórico de quedas ficam para a próxima etapa.
+  - ativos: etapa 11 concluída (019–028); vida útil por fornecedor e relatório de quedas ficam para uma próxima etapa.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
 
 ## Etapa 1: fundação (27/10/2026)
