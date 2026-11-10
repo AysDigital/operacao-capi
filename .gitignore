@@ -6,3 +6,6 @@ dist
 
 # exportação do Trello (dados internos, não vai para o Git)
 6l4PLnjs*.json
+
+# inventário de ativos com e-mails (dados internos, não vai para o Git)
+docs/Ativos-de-conting*
