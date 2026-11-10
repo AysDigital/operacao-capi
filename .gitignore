@@ -9,3 +9,6 @@ dist
 
 # inventário de ativos com e-mails (dados internos, não vai para o Git)
 docs/Ativos-de-conting*
+
+# configurações locais do Claude Code
+.claude/settings.local.json
