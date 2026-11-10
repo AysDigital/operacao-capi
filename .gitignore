@@ -9,6 +9,7 @@ dist
 
 # inventário de ativos com e-mails (dados internos, não vai para o Git)
 docs/Ativos-de-conting*
+docs/Organiza*-contas-Facebook*
 
 # configurações locais do Claude Code
 .claude/settings.local.json
