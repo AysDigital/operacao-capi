@@ -42,7 +42,7 @@ function Portao() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        {TELAS.filter((t) => !['/quadros', '/ranking', '/ofertas', '/ativos', '/modelos', '/config'].includes(t.caminho)).map((t) => (
+        {TELAS.filter((t) => !['/quadros', '/ranking', '/ofertas', '/ativos', '/uso-contas', '/modelos', '/config'].includes(t.caminho)).map((t) => (
           <Route key={t.caminho} path={t.caminho} element={<Placeholder titulo={t.titulo} />} />
         ))}
         <Route path="/" element={<IrParaUltimoQuadro />} />
@@ -52,6 +52,7 @@ function Portao() {
         <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/ofertas/:id" element={<PaginaOferta />} />
         <Route path="/ativos" element={<Ativos />} />
+        <Route path="/uso-contas" element={<Navigate to="/ativos?aba=contas&ver=quadro" replace />} />
         <Route path="/modelos" element={<Modelos />} />
         <Route path="/config" element={<Configuracoes />}>
           <Route index element={<Navigate to="etiquetas" replace />} />

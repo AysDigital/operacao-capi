@@ -23,6 +23,7 @@ import { ops } from '../lib/supabase'
 import { colunas, textoBusca } from './ativos/campos'
 import { ModalAtivo } from './ativos/ModalAtivo'
 import { PainelAtivo } from './ativos/PainelAtivo'
+import { QuadroContas } from './ativos/QuadroContas'
 
 const busca = 'w-full rounded-control border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-muted sm:w-64'
 
@@ -45,7 +46,14 @@ export function Ativos() {
     carregar()
   }, [carregar])
 
-  const abrir = (t: TipoAtivo, id: string | null) => setParams(id ? { aba: TIPOS[t].aba, id } : { aba: TIPOS[t].aba })
+  const ver = tipo === 'conta' && params.get('ver') === 'quadro' ? 'quadro' : 'lista'
+  const quadro = ver === 'quadro'
+  const abrir = (t: TipoAtivo, id: string | null) => {
+    const p: Record<string, string> = { aba: TIPOS[t].aba }
+    if (id) p.id = id
+    if (t === 'conta' && quadro) p.ver = 'quadro'
+    setParams(p)
+  }
   const trocarAba = (t: TipoAtivo) => {
     setTexto('')
     setFiltroStatus('')
@@ -162,8 +170,22 @@ export function Ativos() {
       </nav>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={`Buscar ${t.varios.toLowerCase()}…`} aria-label="Buscar" className={busca} />
-        {temStatus(tipo) && (
+        {tipo === 'conta' && (
+          <div role="group" aria-label="Como ver as contas" className="flex rounded-control border border-line bg-surface p-0.5 text-sm">
+            {(['lista', 'quadro'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setParams(v === 'quadro' ? { aba: t.aba, ver: 'quadro' } : { aba: t.aba })}
+                aria-pressed={ver === v}
+                className={`rounded px-3 py-1.5 ${ver === v ? 'bg-surface-2 font-medium text-ink' : 'text-muted hover:text-ink'}`}
+              >
+                {v === 'lista' ? 'Lista' : 'Quadro de uso'}
+              </button>
+            ))}
+          </div>
+        )}
+        {!quadro && <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={`Buscar ${t.varios.toLowerCase()}…`} aria-label="Buscar" className={busca} />}
+        {temStatus(tipo) && !quadro && (
           <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} aria-label="Filtrar por status" className="rounded-control border border-line bg-surface px-2 py-2 text-sm">
             <option value="">Todos os status</option>
             {Object.entries(STATUS_ATIVO[tipo]).map(([v, s]) => (
@@ -192,8 +214,9 @@ export function Ativos() {
 
       {!inv && !erro && <Carregando linhas={5} altura="h-10" />}
       {inv && inv[tipo].length === 0 && <Vazio titulo={`Nenhum${t.nova ? 'a' : ''} ${t.um.toLowerCase()} cadastrad${t.nova ? 'a' : 'o'} ainda`} />}
-      {inv && inv[tipo].length > 0 && linhas.length === 0 && <Vazio titulo="Nada encontrado com essa busca" />}
-      {inv && linhas.length > 0 && (
+      {inv && quadro && <QuadroContas inv={inv} onMudou={carregar} onAbrir={abrir} />}
+      {inv && !quadro && inv[tipo].length > 0 && linhas.length === 0 && <Vazio titulo="Nada encontrado com essa busca" />}
+      {inv && !quadro && linhas.length > 0 && (
         <CaixaTabela>
           <table className={tabela.table}>
             <thead className={tabela.thead}>
