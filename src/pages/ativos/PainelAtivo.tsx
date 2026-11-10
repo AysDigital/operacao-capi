@@ -136,7 +136,7 @@ export function PainelAtivo({
       </div>
 
       {mudarPara && temStatus(tipo) && (
-        <ModalStatus tipo={tipo} registro={r} para={mudarPara} onFechar={() => setMudarPara(null)} onMudou={mudou} onAbrir={onAbrir} />
+        <ModalStatus tipo={tipo} registro={r} para={mudarPara} onFechar={() => setMudarPara(null)} onMudou={mudou} />
       )}
       {simulando && ehTitular(tipo) && <ModalSimulacao tipo={tipo} registro={r} onFechar={() => setSimulando(false)} onAbrir={onAbrir} />}
     </PainelLateral>
@@ -203,13 +203,6 @@ function Acessos({ tipo, id, inv, onMudou, onAbrir }: { tipo: TipoAcessavel; id:
     <Bloco
       titulo="Acessos"
       ajuda="A dona é a BM ou o perfil proprietário. Compartilhado = outras BMs e perfis que também acessam. O ativo só se perde numa queda quando não sobra nenhum acesso ativo."
-      acoes={
-        !adicionando && (
-          <button onClick={() => setAdicionando(true)} className="rounded-control px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-ink">
-            + Acesso
-          </button>
-        )
-      }
     >
       {validos === 1 && (
         <div className="mb-2">
@@ -226,6 +219,13 @@ function Acessos({ tipo, id, inv, onMudou, onAbrir }: { tipo: TipoAcessavel; id:
       <p className="mt-2 text-xs font-medium text-muted">Compartilhado com</p>
       {compartilhados.length ? <ul className="divide-y divide-line">{compartilhados.map(linha)}</ul> : <p className="py-1.5 text-sm text-muted">Ninguém.</p>}
 
+      {!adicionando && (
+        <div className="mt-2">
+          <Botao variante="secundario" onClick={() => setAdicionando(true)}>
+            {dona ? '+ Compartilhar com BM ou perfil' : '+ Definir dona ou compartilhar'}
+          </Botao>
+        </div>
+      )}
       {adicionando && <NovoAcesso tipo={tipo} id={id} inv={inv} temDona={Boolean(dona)} onFechar={() => setAdicionando(false)} onMudou={onMudou} />}
 
       {antigos.length > 0 && (

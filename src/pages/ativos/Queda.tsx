@@ -162,8 +162,8 @@ export function ModalSimulacao({
 }
 
 /**
- * Mudar o status: pede motivo e data (vão para o histórico). Se for a queda de uma
- * BM ou perfil, mostra antes o que vai se perder e, depois de confirmar, o resultado.
+ * Mudar o status: pede motivo e data (vão para o histórico). A queda é manual:
+ * só este ativo muda; o que mais caiu junto a usuária marca à mão.
  */
 export function ModalStatus({
   tipo,
@@ -171,33 +171,25 @@ export function ModalStatus({
   para,
   onFechar,
   onMudou,
-  onAbrir,
 }: {
   tipo: TipoComStatus
   registro: Registro
   para: string
   onFechar: () => void
   onMudou: () => void
-  onAbrir: (tipo: TipoAtivo, id: string) => void
 }) {
   const toast = useToast()
   const de = registro.status as string
-  const queda = ehTitular(tipo) && caido(tipo, para) && !caido(tipo, de)
+  const queda = caido(tipo, para) && !caido(tipo, de)
   const [motivo, setMotivo] = useState('')
   const [data, setData] = useState(diaBrasilia())
-  const [previa, setPrevia] = useState<ResultadoQueda | null>(null)
-  const [resultado, setResultado] = useState<ResultadoQueda | null>(null)
   const [salvando, setSalvando] = useState(false)
   const s = infoStatus(tipo, para)
-
-  useEffect(() => {
-    if (queda) simularQueda(tipo as TipoTitular, registro.id).then(setPrevia, () => setPrevia(null))
-  }, [queda, tipo, registro.id])
 
   async function confirmar() {
     if (queda && !motivo.trim()) return toast('ruim', 'Escreva o motivo da queda.')
     setSalvando(true)
-    const { data: res, error } = await ops().rpc('mudar_status_ativo', {
+    const { error } = await ops().rpc('mudar_status_ativo', {
       p_tipo: tipo,
       p_id: registro.id,
       p_status: para,
@@ -207,37 +199,15 @@ export function ModalStatus({
     setSalvando(false)
     if (error) return toast('ruim', mensagemErro(error))
     onMudou()
-    if (queda && res) setResultado(res as ResultadoQueda)
-    else {
-      toast('bom', `Status: ${s?.nome ?? para}.`)
-      onFechar()
-    }
+    toast('bom', `Status: ${s?.nome ?? para}.`)
+    onFechar()
   }
-
-  if (resultado)
-    return (
-      <Modal titulo="Queda registrada" onFechar={onFechar} largura="max-w-3xl" rodape={<Botao onClick={onFechar} className="ml-auto">Entendi</Botao>}>
-        <div className="space-y-4">
-          <Aviso tom="ruim">
-            {nomeDe(tipo, registro)} ficou {s?.nome.toLowerCase()}. Os acessos que ela dava ficaram inativos (guardados no histórico).
-            {resultado.perdidos.length > 0 && ` ${resultado.perdidos.length} ativo(s) ficaram sem nenhum acesso.`}
-          </Aviso>
-          <ResultadoDaQueda
-            r={resultado}
-            onAbrir={(t, id) => {
-              onFechar()
-              onAbrir(t, id)
-            }}
-          />
-        </div>
-      </Modal>
-    )
 
   return (
     <Modal
       titulo={queda ? `Registrar queda de ${nomeDe(tipo, registro)}` : `Mudar status de ${nomeDe(tipo, registro)}`}
       onFechar={onFechar}
-      largura={queda ? 'max-w-3xl' : 'max-w-lg'}
+      largura="max-w-lg"
       rodape={
         <>
           <Botao variante="secundario" onClick={onFechar} className="ml-auto">
@@ -263,11 +233,8 @@ export function ModalStatus({
             <input type="date" value={data} max={diaBrasilia()} onChange={(e) => setData(e.target.value)} className={entrada} />
           </Campo>
         </div>
-        {queda && (
-          <div>
-            <h3 className="mb-2 text-sm font-semibold">O que acontece com esta queda</h3>
-            {previa ? <ResultadoDaQueda r={previa} /> : <Carregando linhas={3} altura="h-8" />}
-          </div>
+        {queda && ehTitular(tipo) && (
+          <p className="text-sm text-muted">Só {nomeDe(tipo, registro)} muda. Se mais alguma coisa caiu junto, marque à mão em cada ativo.</p>
         )}
       </div>
     </Modal>

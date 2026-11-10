@@ -3,7 +3,7 @@
 ## Situação atual (04/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 019 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona). **Próxima: 020.**
+- **Banco:** migrations 001 a 019 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (**aguardando a usuária rodar**). **Próxima: 021.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -405,3 +405,7 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - Status com as mesmas cores em todo lugar: verde ok, amarelo atenção, vermelho caído, cinza morto.
 - **Contas de anúncio** saíram de Configurações para Ativos → Contas (com "Importar do dashboard"); `/config/contas` redireciona.
 - **Página da oferta:** nova aba Ativos (contas pelas veiculações; páginas, pixels e domínios ligados).
+- **Ajustes de 10/11/2026 (migration 020, queda manual):**
+  - por decisão da usuária, a queda de uma BM ou perfil não mexe em mais nada: os acessos não são inativados e não há alerta de perdidos. Ela marca à mão o que mais caiu. O status vai para o histórico com motivo e data, como antes;
+  - "E se cair?" continua, só como simulação;
+  - botão "+ Compartilhar com BM ou perfil" logo abaixo de "Compartilhado com" (antes era um "+ Acesso" pequeno no canto).
