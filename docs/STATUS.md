@@ -3,7 +3,7 @@
 ## Situação atual (10/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 028 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (rodada em 10/11/2026); 021: importação do inventário de ativos (rodada em 10/11/2026: 10 perfis, 13 BMs, 35 contas, 21 páginas, 51 pixels, 308 acessos); 022: tira o perfil "Grupo Capi" (rodada em 10/11/2026: 9 perfis, 304 acessos); 023: pessoas "inativas" das BMs contam como acesso (rodada em 10/11/2026: 10 perfis, 312 acessos); 024: Nicoly na BM Boulevard (rodada em 10/11/2026: 313 acessos); 025: apaga ativos antigos e completa IDs pela planilha (rodada em 10/11/2026: 16 páginas, 15 pixels, todas as contas e BMs com ID). Onde a planilha e o documento discordam, vale o documento (decisão da usuária); 026: status dos pixels, fornecedor dos perfis e apelidos AC das contas (rodada em 10/11/2026: 35 contas com apelido novo); 027: só os pixels GE e Pontos de Comando ficam (rodada em 10/11/2026); 028: quadro de uso das contas (rodada em 10/11/2026). **Próxima: 029.**
+- **Banco:** migrations 001 a 028 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (rodada em 10/11/2026); 021: importação do inventário de ativos (rodada em 10/11/2026: 10 perfis, 13 BMs, 35 contas, 21 páginas, 51 pixels, 308 acessos); 022: tira o perfil "Grupo Capi" (rodada em 10/11/2026: 9 perfis, 304 acessos); 023: pessoas "inativas" das BMs contam como acesso (rodada em 10/11/2026: 10 perfis, 312 acessos); 024: Nicoly na BM Boulevard (rodada em 10/11/2026: 313 acessos); 025: apaga ativos antigos e completa IDs pela planilha (rodada em 10/11/2026: 16 páginas, 15 pixels, todas as contas e BMs com ID). Onde a planilha e o documento discordam, vale o documento (decisão da usuária); 026: status dos pixels, fornecedor dos perfis e apelidos AC das contas (rodada em 10/11/2026: 35 contas com apelido novo); 027: só os pixels GE e Pontos de Comando ficam (rodada em 10/11/2026); 028: quadro de uso das contas (rodada em 10/11/2026); 029: Contingência (etapa 12, **aguardando a usuária rodar**). **Próxima: 030.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -24,7 +24,8 @@
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
   - modelos de card: feito na etapa 9 (016);
   - checklist de lançamento de oferta: feito na etapa 10 (017/018);
-  - ativos: etapa 11 concluída (019–028); vida útil por fornecedor e relatório de quedas ficam para uma próxima etapa.
+  - ativos: etapa 11 concluída (019–028);
+  - Contingência (aquecimento, reserva, quedas e vida útil por fornecedor): etapa 12 (029), aguardando teste.
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
 
 ## Etapa 1: fundação (27/10/2026)
@@ -434,3 +435,20 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - perfis sem a coluna Navegador; Fornecedor mostra "Pessoal" quando não há fornecedor; Possui e Acessa com dica explicando.
 - **Migration 025:** apaga 5 páginas e 36 pixels antigos (pedido da usuária; com acessos e ligações com ofertas); C27–C34 ganham nome, ID da Meta e moeda da planilha `docs/Organização-contas-Facebook.xlsx` (fora do Git), as da Mayarah como desativadas; as 13 BMs ganham o ID da Meta.
 - **Migration 024:** Nicoly compartilhada na BM 01 - Boulevard (no documento a pessoa se chama "Nicoly Souza"; a 021 tinha ligado ao Grupo Capi pelo e-mail).
+
+## Etapa 12: Contingência (10/11/2026)
+
+- **Princípio:** processo separado, com item próprio no menu (`/contingencia`). Usa os perfis, páginas e contas de Ativos, mas nada se move sozinho: o sistema organiza, lembra e avisa; status do ativo e coluna do quadro de uso só mudam quando a usuária confirma.
+- **Migration 029:**
+  - `ops.rotinas_aquecimento` (nome, tipo perfil/página/conta, duração em dias, ativa, descrição) e `ops.rotinas_tarefas` (dia; vazio = todos os dias; texto; ordem). Começa vazia;
+  - `ops.aquecimentos` (perfil_id/pagina_id/conta_id com `ativo_tipo`/`ativo_id` gerados, cópia do nome e da duração da rotina, início, status andamento/concluído/interrompido, fim, motivo, observações) e `ops.aquecimento_tarefas` (dia, texto, diária, feito, feito_em). Índice único: um aquecimento em andamento por ativo;
+  - `ops.iniciar_aquecimento(tipo, id, rotina, início)`: copia as tarefas da rotina; as de "todos os dias" viram uma por dia (1..duração), então mudar a rotina depois não altera aquecimentos em andamento;
+  - `ops.reserva_minima` (mínimo de prontos por tipo, começa em 0);
+  - `ativos_status_log.importacao`: marca as linhas gravadas pelas importações (019–026), que não contam como queda.
+- **Telas** (`src/pages/Contingencia.tsx`, `src/pages/contingencia/`, `src/lib/contingencia.ts`):
+  - topo: reserva de prontos × mínimo por tipo, com "Configurar mínimo" e alerta quando abaixo (o alerta também aparece em Ativos). Pronto = não caído + aquecimento concluído + sem uso (perfil "Pronto"; conta em "Sem uso" no quadro de uso; página sem oferta ligada);
+  - Hoje: aquecimentos em andamento agrupados por tipo, "D4 de 14", barra de progresso, tarefas de hoje para marcar e atrasadas em vermelho;
+  - Quadro: Em andamento | Concluído | Interrompido; o cartão abre o aquecimento completo (tarefas por dia, observações, concluir, interromper com motivo, excluir). Ao concluir/interromper, pergunta se quer mudar o status do ativo (sugere "Pronto" para perfil) e, para conta, a coluna do quadro de uso; "Deixar como está" não muda nada;
+  - Rotinas: criar, editar, duplicar e excluir; tarefas por dia (Todos os dias + D1..Dn) com adicionar, editar, mudar de dia, subir/descer e excluir;
+  - Quedas: quedas por mês (12 meses), resumo por fornecedor (perfis e BMs comprados, quantos caíram, vida útil média da compra até a queda, custo por mês de vida) e lista de quedas no período (ativo, tipo, fornecedor, data, motivo, quanto durou).
+- **Ativos:** painel de perfis, contas e páginas ganhou o bloco "Aquecimento" (em andamento com dia e progresso, ou "Iniciar aquecimento", e os anteriores).

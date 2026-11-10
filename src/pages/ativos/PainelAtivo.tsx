@@ -34,6 +34,7 @@ import { diaBrasilia, formatarDataHora, formatarDiaIso } from '../../lib/format'
 import { STATUS_VEICULACAO, type StatusVeiculacao } from '../../lib/quadro'
 import { ops } from '../../lib/supabase'
 import { CAMPOS, mostrarCampo, SeloStatusAtivo } from './campos'
+import { AquecimentoDoAtivo } from '../contingencia/AquecimentoDoAtivo'
 import { ModalSimulacao, ModalStatus, SeletorStatus } from './Queda'
 
 type OfertaResumo = { id: string; nome: string; codigo: string; idioma: string; cor: string | null }
@@ -130,6 +131,7 @@ export function PainelAtivo({
             ))}
         </dl>
 
+        {(tipo === 'perfil' || tipo === 'conta' || tipo === 'pagina') && <AquecimentoDoAtivo key={id} tipo={tipo} id={id} inv={inv} onMudou={mudou} />}
         {ehAcessavel(tipo) && <Acessos tipo={tipo} id={id} inv={inv} onMudou={mudou} onAbrir={onAbrir} />}
         {ehTitular(tipo) && <PossuiAcessa tipo={tipo} id={id} inv={inv} onAbrir={onAbrir} />}
         <Uso tipo={tipo} id={id} inv={inv} onAbrir={onAbrir} versao={versao} />

@@ -18,12 +18,14 @@ import {
   type TipoAtivo,
 } from '../lib/ativos'
 import { mensagemErro } from '../lib/cadastros'
+import { buscarAquecimentos, buscarReserva, situacaoReserva, type Aquecimento, type Reserva } from '../lib/contingencia'
 import { buscarNomesContas } from '../lib/metricas'
 import { ops } from '../lib/supabase'
 import { colunas, textoBusca } from './ativos/campos'
 import { ModalAtivo } from './ativos/ModalAtivo'
 import { PainelAtivo } from './ativos/PainelAtivo'
 import { QuadroContas } from './ativos/QuadroContas'
+import { AvisoReserva } from './contingencia/Reserva'
 
 const busca = 'w-full rounded-control border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-muted sm:w-64'
 
@@ -61,6 +63,19 @@ export function Ativos() {
   }
 
   const dependentes = useMemo(() => (inv ? dependentesUnicos(inv) : []), [inv])
+
+  // Reserva mínima da Contingência (só avisa; nada muda aqui).
+  const [contingencia, setContingencia] = useState<{ aquecimentos: Aquecimento[]; reserva: Reserva } | null>(null)
+  useEffect(() => {
+    Promise.all([buscarAquecimentos(), buscarReserva()]).then(
+      ([aquecimentos, reserva]) => setContingencia({ aquecimentos, reserva }),
+      () => setContingencia(null),
+    )
+  }, [inv])
+  const reservaAbaixo = useMemo(
+    () => (inv && contingencia ? situacaoReserva(inv, contingencia.aquecimentos, contingencia.reserva).filter((s) => s.abaixo) : []),
+    [inv, contingencia],
+  )
 
   const linhas = useMemo(() => {
     if (!inv) return []
@@ -123,6 +138,12 @@ export function Ativos() {
       </TituloPagina>
 
       {erro && <Aviso tom="ruim">Não foi possível carregar os ativos: {erro}</Aviso>}
+
+      {reservaAbaixo.length > 0 && (
+        <div className="mb-3">
+          <AvisoReserva abaixo={reservaAbaixo} comLink />
+        </div>
+      )}
 
       {inv && dependentes.length > 0 && (
         <div className="mb-5">
