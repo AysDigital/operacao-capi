@@ -17,6 +17,7 @@ import {
   type TipoAtivo,
 } from '../lib/ativos'
 import { mensagemErro } from '../lib/cadastros'
+import { buscarNomesContas } from '../lib/metricas'
 import { ops } from '../lib/supabase'
 import { colunas, textoBusca } from './ativos/campos'
 import { ModalAtivo } from './ativos/ModalAtivo'
@@ -36,6 +37,7 @@ export function Ativos() {
   const [editando, setEditando] = useState<Registro | 'novo' | null>(null)
   const [verDependentes, setVerDependentes] = useState(false)
   const [importando, setImportando] = useState(false)
+  const [buscandoNomes, setBuscandoNomes] = useState(false)
 
   const carregar = useCallback(() => buscarInventario().then(setInv, (e: Error) => setErro(e.message)), [])
   useEffect(() => {
@@ -72,6 +74,23 @@ export function Ativos() {
     if (error) return toast('ruim', mensagemErro(error))
     toast('bom', data ? `${data} conta(s) importada(s) do dashboard.` : 'Nenhuma conta nova no dashboard.')
     carregar()
+  }
+
+  /** Troca o nome de cada conta pelo nome que ela tem na Meta (o apelido CXX não muda). */
+  async function nomesDaMeta() {
+    setBuscandoNomes(true)
+    try {
+      const r = await buscarNomesContas()
+      const partes = [r.atualizadas ? `${r.atualizadas} conta(s) com o nome atualizado.` : 'Todos os nomes já estavam iguais aos da Meta.']
+      if (r.falhas.length) partes.push(`A Meta não respondeu para: ${r.falhas.map((f) => f.conta).join(', ')}.`)
+      if (r.sem_id.length) partes.push(`Sem ID da Meta (preencha em Editar): ${r.sem_id.join(', ')}.`)
+      toast(r.falhas.length ? 'ruim' : 'bom', partes.join(' '))
+      carregar()
+    } catch (e) {
+      toast('ruim', (e as Error).message)
+    } finally {
+      setBuscandoNomes(false)
+    }
   }
 
   const t = TIPOS[tipo]
@@ -145,6 +164,11 @@ export function Ativos() {
           </select>
         )}
         <span className="ml-auto flex gap-2">
+          {tipo === 'conta' && (
+            <Botao variante="secundario" onClick={nomesDaMeta} disabled={buscandoNomes}>
+              {buscandoNomes ? 'Buscando…' : 'Buscar nomes na Meta'}
+            </Botao>
+          )}
           {tipo === 'conta' && (
             <Botao variante="secundario" onClick={importar} disabled={importando}>
               {importando ? 'Importando…' : 'Importar do dashboard'}

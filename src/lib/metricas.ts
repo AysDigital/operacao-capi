@@ -64,6 +64,11 @@ export type AnuncioMeta = { id: string; nome: string; status: string; criado_em:
 export const listarAnunciosDaConta = (contaId: string) =>
   chamarApi<{ anuncios: AnuncioMeta[] }>(`/api/meta-anuncios?conta=${encodeURIComponent(contaId)}`).then((r) => r.anuncios)
 
+export type ResultadoNomesContas = { atualizadas: number; falhas: { conta: string; erro: string }[]; sem_id: string[] }
+
+/** Traz da Meta o nome (e a moeda) de cada conta que tem o ID cadastrado. */
+export const buscarNomesContas = () => chamarApi<ResultadoNomesContas>('/api/meta-contas', { method: 'POST' })
+
 // ---------------------------------------------------------------------
 // Números de um card
 // ---------------------------------------------------------------------
