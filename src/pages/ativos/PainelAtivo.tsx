@@ -25,6 +25,7 @@ import {
   type EventoStatus,
   type Inventario,
   type TipoAcessavel,
+  type TipoComStatus,
   type TipoAtivo,
   type TipoTitular,
 } from '../../lib/ativos'
@@ -502,7 +503,7 @@ function Uso({ tipo, id, inv, onAbrir, versao }: { tipo: TipoAtivo; id: string; 
   )
 }
 
-function HistoricoStatus({ tipo, id, versao, status }: { tipo: 'perfil' | 'bm' | 'conta' | 'pagina'; id: string; versao: number; status: string }) {
+function HistoricoStatus({ tipo, id, versao, status }: { tipo: TipoComStatus; id: string; versao: number; status: string }) {
   const [eventos, setEventos] = useState<EventoStatus[] | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   useEffect(() => {

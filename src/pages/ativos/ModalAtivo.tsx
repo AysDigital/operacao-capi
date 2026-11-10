@@ -248,7 +248,7 @@ function CampoEntrada({
         onChange={(e) => {
           const x = e.target.value
           onMudar(
-            c.tipo === 'sigla' ? soSigla(x, 6) : c.tipo === 'ultimos4' ? x.replace(/\D/g, '').slice(0, 4) : c.tipo === 'moeda' ? x.toUpperCase().slice(0, 3) : x,
+            c.tipo === 'sigla' ? soSigla(x, 8) : c.tipo === 'ultimos4' ? x.replace(/\D/g, '').slice(0, 4) : c.tipo === 'moeda' ? x.toUpperCase().slice(0, 3) : x,
           )
         }}
         onBlur={c.tipo === 'idMeta' ? () => onMudar(normalizarIdConta(s)) : undefined}

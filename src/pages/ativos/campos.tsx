@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Selo } from '../../components/ds'
+import { Dica, Selo } from '../../components/ds'
 import {
   acessosDoAtivo,
   acessosDoTitular,
@@ -13,6 +13,7 @@ import {
   type Inventario,
   type Registro,
   type TipoAtivo,
+  type TipoComStatus,
 } from '../../lib/ativos'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
 
@@ -32,10 +33,10 @@ export type Campo = {
   meia?: boolean
 }
 
-const opcoesStatus = (t: 'perfil' | 'bm' | 'conta' | 'pagina') =>
+const opcoesStatus = (t: TipoComStatus) =>
   Object.entries(STATUS_ATIVO[t]).map(([valor, s]) => ({ valor, nome: s.nome }))
 
-const STATUS = (t: 'perfil' | 'bm' | 'conta' | 'pagina'): Campo => ({ chave: 'status', rotulo: 'Status', tipo: 'opcoes', opcoes: opcoesStatus(t), meia: true })
+const STATUS = (t: TipoComStatus): Campo => ({ chave: 'status', rotulo: 'Status', tipo: 'opcoes', opcoes: opcoesStatus(t), meia: true })
 const OBS: Campo = { chave: 'observacoes', rotulo: 'Observações', tipo: 'area' }
 const COMPRA: Campo[] = [
   { chave: 'fornecedor_id', rotulo: 'Fornecedor', tipo: 'fornecedor' },
@@ -70,7 +71,7 @@ export const CAMPOS: Record<TipoAtivo, Campo[]> = {
     OBS,
   ],
   conta: [
-    { chave: 'apelido', rotulo: 'Apelido', tipo: 'sigla', obrigatorio: true, meia: true, placeholder: 'C1', dica: 'É o que aparece nas pílulas dos cards.' },
+    { chave: 'apelido', rotulo: 'Apelido', tipo: 'sigla', obrigatorio: true, meia: true, placeholder: 'AC01LUC', dica: 'AC + número da conta + 3 letras da BM (ex.: Conta 01 da BM 01 - Luciano → AC01LUC). É o que aparece nas pílulas dos cards.' },
     { chave: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true, meia: true, placeholder: 'Conta 01' },
     { chave: 'meta_ad_account_id', rotulo: 'ID da conta na Meta', tipo: 'idMeta', placeholder: 'act_123456789012345' },
     STATUS('conta'),
@@ -87,7 +88,8 @@ export const CAMPOS: Record<TipoAtivo, Campo[]> = {
   ],
   pixel: [
     { chave: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true },
-    { chave: 'meta_id', rotulo: 'ID na Meta', tipo: 'idMeta' },
+    { chave: 'meta_id', rotulo: 'ID na Meta', tipo: 'idMeta', meia: true },
+    STATUS('pixel'),
     OBS,
   ],
   dominio: [
@@ -214,12 +216,28 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
     rotulo: 'Dona',
     valor: (r) => <ColunaAcesso inv={inv} tipo={tipo} r={r} />,
   }
-  const daTitular = (papel: 'dona' | 'compartilhado', rotulo: string): Coluna => ({
-    rotulo,
+  const quem = tipo === 'bm' ? 'esta BM' : 'este perfil'
+  const daTitular = (papel: 'dona' | 'compartilhado'): Coluna => ({
+    rotulo: (
+      <Dica
+        lado="direita"
+        conteudo={
+          papel === 'dona'
+            ? `Quantos ativos ${quem} possui: é a dona deles (proprietária). Se cair, eles só continuam acessíveis se estiverem compartilhados com outra BM ou perfil.`
+            : `Quantos ativos ${quem} acessa sem ser a dona: foram compartilhados com ela por outra BM ou perfil. É o que funciona como reserva se a dona cair.`
+        }
+      >
+        {papel === 'dona' ? 'Possui' : 'Acessa'}
+      </Dica>
+    ),
     classe: num,
     valor: (r) => acessosDoTitular(inv, tipo, r.id).filter((a) => a.ativo && a.papel === papel).length || '—',
   })
-  const fornecedor: Coluna = { rotulo: 'Fornecedor', valor: (r) => (r.fornecedor_id ? nomeAtivo(inv, 'fornecedor', r.fornecedor_id as string) : '—') }
+  const fornecedor: Coluna = {
+    rotulo: 'Fornecedor',
+    valor: (r) =>
+      r.fornecedor_id ? nomeAtivo(inv, 'fornecedor', r.fornecedor_id as string) : r.origem === 'proprio' ? <span className="text-muted">Pessoal</span> : '—',
+  }
 
   switch (tipo) {
     case 'perfil':
@@ -228,9 +246,8 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
         status,
         { rotulo: 'Origem', valor: (r) => ORIGENS.find((o) => o.valor === r.origem)?.nome ?? '—' },
         fornecedor,
-        { rotulo: 'Navegador', valor: (r) => [r.navegador, r.perfil_navegador].filter(Boolean).join(' · ') || '—' },
-        daTitular('dona', 'Possui'),
-        daTitular('compartilhado', 'Acessa'),
+        daTitular('dona'),
+        daTitular('compartilhado'),
       ]
     case 'bm':
       return [
@@ -239,8 +256,8 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
         { rotulo: 'Verificada', valor: (r) => (r.verificada ? '✓ Sim' : <span className="text-muted">Não</span>) },
         idMeta('meta_id'),
         acesso,
-        daTitular('dona', 'Possui'),
-        daTitular('compartilhado', 'Acessa'),
+        daTitular('dona'),
+        daTitular('compartilhado'),
       ]
     case 'conta':
       return [
@@ -258,7 +275,7 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
     case 'pagina':
       return [nome, status, idMeta('meta_id'), acesso, { rotulo: 'Ofertas', classe: num, valor: (r) => ofertasDe(inv, 'pagina_id', r.id) || '—' }]
     case 'pixel':
-      return [nome, idMeta('meta_id'), acesso, { rotulo: 'Ofertas', classe: num, valor: (r) => ofertasDe(inv, 'pixel_id', r.id) || '—' }]
+      return [nome, status, idMeta('meta_id'), acesso, { rotulo: 'Ofertas', classe: num, valor: (r) => ofertasDe(inv, 'pixel_id', r.id) || '—' }]
     case 'dominio':
       return [
         nome,

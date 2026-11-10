@@ -8,10 +8,10 @@ export type TipoAcessavel = 'perfil' | 'bm' | 'conta' | 'pagina' | 'pixel'
 /** Quem dá acesso: BM ou perfil. */
 export type TipoTitular = 'bm' | 'perfil'
 /** Ativos com status (e histórico de status). */
-export type TipoComStatus = 'perfil' | 'bm' | 'conta' | 'pagina'
+export type TipoComStatus = 'perfil' | 'bm' | 'conta' | 'pagina' | 'pixel'
 
 export const ACESSAVEIS: TipoAcessavel[] = ['perfil', 'bm', 'conta', 'pagina', 'pixel']
-export const COM_STATUS: TipoComStatus[] = ['perfil', 'bm', 'conta', 'pagina']
+export const COM_STATUS: TipoComStatus[] = ['perfil', 'bm', 'conta', 'pagina', 'pixel']
 export const ehAcessavel = (t: TipoAtivo): t is TipoAcessavel => (ACESSAVEIS as string[]).includes(t)
 export const temStatus = (t: TipoAtivo): t is TipoComStatus => (COM_STATUS as string[]).includes(t)
 export const ehTitular = (t: TipoAtivo): t is TipoTitular => t === 'bm' || t === 'perfil'
@@ -65,6 +65,7 @@ export const STATUS_ATIVO: Record<TipoComStatus, Record<string, InfoStatus>> = {
   bm: STATUS_BM,
   conta: STATUS_BM,
   pagina: STATUS_BM,
+  pixel: { ativo: OK('Ativo'), desativado: MORTO('Desativado') },
 }
 
 export function infoStatus(tipo: TipoAtivo, status: string | null | undefined): InfoStatus | null {
@@ -75,7 +76,7 @@ export const caido = (tipo: TipoAtivo, status: string | null | undefined) => Boo
 
 export const ORIGENS = [
   { valor: 'comprado', nome: 'Comprado' },
-  { valor: 'proprio', nome: 'Próprio' },
+  { valor: 'proprio', nome: 'Pessoal' },
   { valor: 'aquecido', nome: 'Aquecido por nós' },
 ]
 export const NIVEIS = [

@@ -5,6 +5,7 @@ import { useToast } from '../components/Toast'
 import { Botao, TituloPagina } from '../components/ui'
 import {
   buscarInventario,
+  caido,
   dependentesUnicos,
   nomeAtivo,
   ORDEM_ABAS,
@@ -65,6 +66,15 @@ export function Ativos() {
           : textoBusca(tipo, a, inv).localeCompare(textoBusca(tipo, b, inv), 'pt-BR', { numeric: true }),
       )
   }, [inv, tipo, texto, filtroStatus])
+
+  /** Com status: primeiro os ativos, depois os desativados/restritos. Sem status: um grupo só. */
+  const grupos = useMemo(() => {
+    if (!temStatus(tipo)) return [{ titulo: null as string | null, linhas }]
+    return [
+      { titulo: 'Ativos', linhas: linhas.filter((r) => !caido(tipo, r.status as string)) },
+      { titulo: 'Desativados e restritos', linhas: linhas.filter((r) => caido(tipo, r.status as string)) },
+    ].filter((g) => g.linhas.length > 0)
+  }, [linhas, tipo])
 
   /** Traz do dashboard de vendas as contas que ainda não estão aqui (só número e nome). */
   async function importar() {
@@ -195,23 +205,32 @@ export function Ativos() {
                 ))}
               </tr>
             </thead>
-            <tbody className={tabela.tbody}>
-              {linhas.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => abrir(tipo, r.id)}
-                  onKeyDown={(e) => e.key === 'Enter' && abrir(tipo, r.id)}
-                  tabIndex={0}
-                  className={`cursor-pointer hover:bg-surface-2/60 focus:bg-surface-2/60 focus:outline-none ${r.id === aberto ? 'bg-surface-2/60' : ''}`}
-                >
-                  {cols.map((c, i) => (
-                    <td key={i} className={`${tabela.td} ${c.classe ?? ''}`}>
-                      {c.valor(r)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
+            {grupos.map((g) => (
+              <tbody key={g.titulo ?? 'todos'} className={tabela.tbody}>
+                {g.titulo && (
+                  <tr className="bg-surface-2/70">
+                    <th colSpan={cols.length} scope="colgroup" className="px-4 py-2 text-left text-xs font-semibold tracking-wide text-muted uppercase">
+                      {g.titulo} <span className="ml-1 font-normal tabular-nums">{g.linhas.length}</span>
+                    </th>
+                  </tr>
+                )}
+                {g.linhas.map((r) => (
+                  <tr
+                    key={r.id}
+                    onClick={() => abrir(tipo, r.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && abrir(tipo, r.id)}
+                    tabIndex={0}
+                    className={`cursor-pointer hover:bg-surface-2/60 focus:bg-surface-2/60 focus:outline-none ${r.id === aberto ? 'bg-surface-2/60' : ''}`}
+                  >
+                    {cols.map((c, i) => (
+                      <td key={i} className={`${tabela.td} ${c.classe ?? ''}`}>
+                        {c.valor(r)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </CaixaTabela>
       )}
