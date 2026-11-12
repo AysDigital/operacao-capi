@@ -44,6 +44,7 @@ import { ModalDuplicar, ModalGerarVariacoes, ModalNovaVersao } from './card/Vers
 import { CartaoArrastavel, CartaoFrente, type Contexto } from './Cartao'
 import { MenuLista, type AcaoLista } from './MenuLista'
 import { ModalNovoDeModelo, ModalSalvarComoModelo } from './ModelosQuadro'
+import { PreencherIdsMeta, VeicularEmLote } from './VeicularEmLote'
 import { NovaLista } from './NovaLista'
 import { NovoCard } from './NovoCard'
 import { PainelArquivados } from './PainelArquivados'
@@ -90,6 +91,7 @@ export function Quadro({
   const [acaoVersao, setAcaoVersao] = useState<{ acao: 'versao' | 'variacoes' | 'duplicar'; cardId: string } | null>(null)
   const [verArquivados, setVerArquivados] = useState(false)
   const [novoDeModelo, setNovoDeModelo] = useState(false)
+  const [lote, setLote] = useState<'veicular' | 'ids' | null>(null)
   const [salvarModelo, setSalvarModelo] = useState<CardQuadro | null>(null)
   const [metricas, setMetricas] = useState<MetricasCards>(() => new Map())
   const [mostrarMetricas, setMostrarMetricas] = useState<boolean>(() => lerLocal('quadro_metricas', true))
@@ -413,6 +415,8 @@ export function Quadro({
         aoVivo={aoVivo}
         onArquivados={() => setVerArquivados(true)}
         onNovoDeModelo={() => setNovoDeModelo(true)}
+        onVeicularLote={() => setLote('veicular')}
+        onPreencherIds={() => setLote('ids')}
         mostrarMetricas={mostrarMetricas}
         onMostrarMetricas={(v) => {
           setMostrarMetricas(v)
@@ -525,6 +529,11 @@ export function Quadro({
       {acaoVersao?.acao === 'duplicar' && (
         <ModalDuplicar cardId={acaoVersao.cardId} ctx={{ listas, ofertas, contas }} onFechar={() => setAcaoVersao(null)} onCriado={depoisDeCriar} />
       )}
+
+      {lote === 'veicular' && cards && (
+        <VeicularEmLote cards={cards} listas={listas} contas={contas} ofertas={ofertas} ofertaId={ofertaId} onFechar={() => setLote(null)} onFeito={carregar} />
+      )}
+      {lote === 'ids' && <PreencherIdsMeta ofertaId={ofertaId} onFechar={() => setLote(null)} onFeito={carregar} />}
 
       {excluirCard && (
         <ConfirmarExclusaoCard

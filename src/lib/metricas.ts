@@ -64,6 +64,19 @@ export type AnuncioMeta = { id: string; nome: string; status: string; criado_em:
 export const listarAnunciosDaConta = (contaId: string) =>
   chamarApi<{ anuncios: AnuncioMeta[] }>(`/api/meta-anuncios?conta=${encodeURIComponent(contaId)}`).then((r) => r.anuncios)
 
+export type ResultadoCasar = {
+  pendentes: number
+  preenchidas: number
+  nao_achados: string[]
+  duvidas: string[]
+  falhas: { conta: string; erro: string }[]
+  contas_sem_id: string[]
+}
+
+/** Preenche o ID do anúncio nas veiculações sem ID, casando pelo "adN-hN-mN" do nome na Meta. */
+export const casarAnunciosPeloNome = (ofertaId: string | null) =>
+  chamarApi<ResultadoCasar>('/api/meta-casar', { method: 'POST', body: JSON.stringify(ofertaId ? { oferta: ofertaId } : {}) })
+
 export type ResultadoNomesContas = { atualizadas: number; falhas: { conta: string; erro: string }[]; sem_id: string[] }
 
 /** Traz da Meta o nome (e a moeda) de cada conta que tem o ID cadastrado. */

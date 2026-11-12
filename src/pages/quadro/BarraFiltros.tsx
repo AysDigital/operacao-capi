@@ -16,6 +16,8 @@ export function BarraFiltros({
   aoVivo,
   onArquivados,
   onNovoDeModelo,
+  onVeicularLote,
+  onPreencherIds,
   mostrarMetricas,
   onMostrarMetricas,
 }: {
@@ -27,6 +29,8 @@ export function BarraFiltros({
   aoVivo: boolean
   onArquivados: () => void
   onNovoDeModelo: () => void
+  onVeicularLote: () => void
+  onPreencherIds: () => void
   /** linha "gasto · ROAS · vendas" nos cards rodando */
   mostrarMetricas: boolean
   onMostrarMetricas: (v: boolean) => void
@@ -124,6 +128,12 @@ export function BarraFiltros({
         </button>
         <button onClick={onNovoDeModelo} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
           + Novo a partir de modelo
+        </button>
+        <button onClick={onVeicularLote} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
+          Veicular em lote
+        </button>
+        <button onClick={onPreencherIds} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
+          Preencher IDs da Meta
         </button>
         <button onClick={onArquivados} className="rounded-control border border-line px-2.5 py-1 hover:bg-surface-2 hover:text-ink">
           Arquivados
