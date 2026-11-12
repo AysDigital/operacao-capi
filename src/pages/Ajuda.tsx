@@ -75,7 +75,7 @@ const TOPICOS: Topico[] = [
         'Do zero até rodando',
         'No quadro da oferta, crie os cards: "+ Adicionar card" no fim da lista (Enter cria e já sugere o próximo AD) ou "+ Novo a partir de modelo" para criar vários de uma vez já com anexos e checklists.',
         'Mova os cards pelas listas conforme o trabalho anda (Criação → Revisão → Edição → Pronto pra subir).',
-        'Quando a remessa estiver em "Pronto pra subir", clique em "Veicular em lote" na barra do quadro, escolha a lista (os cards já vêm marcados), marque as contas e crie todas as veiculações de uma vez.',
+        'Quando a remessa estiver em "Pronto pra subir", clique em "Veicular em lote" na barra do quadro, escolha uma ou mais listas (os cards já vêm marcados; se quiser, ligue "Só cards sem nenhuma conta"), marque as contas e crie todas as veiculações de uma vez.',
         'Suba os anúncios na Meta mantendo no nome o padrão ad12-h1-m2 (AD, hook e variação do card).',
         'Volte ao quadro e clique em "Preencher IDs da Meta": o app procura cada anúncio pelo nome e preenche o ID sozinho. O que ele não achar aparece na lista do resultado para você escolher no card.',
         'Pronto: com o ID preenchido, as métricas da Meta e as vendas do dashboard passam a aparecer no card e no Ranking.',

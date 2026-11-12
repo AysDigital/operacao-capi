@@ -32,18 +32,23 @@ export function VeicularEmLote({
   const doQuadro = cards.filter((c) => !c.arquivado && c.tipo === 'ad' && (!ofertaId || c.oferta_id === ofertaId))
   const comCards = listas.filter((l) => !l.arquivada && doQuadro.some((c) => c.lista_id === l.id))
   const inicial = comCards.find((l) => /pronto/i.test(l.nome))?.id ?? comCards[0]?.id ?? ''
-  const [listaId, setListaId] = useState(inicial)
+  const [listasMarcadas, setListasMarcadas] = useState<Set<string>>(new Set(inicial ? [inicial] : []))
+  const [soSemConta, setSoSemConta] = useState(false)
   const [marcados, setMarcados] = useState<Set<string>>(new Set())
   const [contasMarcadas, setContasMarcadas] = useState<Set<string>>(new Set())
   const [status, setStatus] = useState<StatusVeiculacao>('nao_subido')
   const [salvando, setSalvando] = useState(false)
 
   const daLista = useMemo(
-    () => doQuadro.filter((c) => !listaId || c.lista_id === listaId).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true })),
-    [doQuadro, listaId],
+    () =>
+      doQuadro
+        .filter((c) => listasMarcadas.has(c.lista_id) && (!soSemConta || c.veiculacoes.length === 0))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true })),
+    [doQuadro, listasMarcadas, soSemConta],
   )
-  // ao trocar de lista, já marca todos os cards dela
-  useEffect(() => setMarcados(new Set(daLista.map((c) => c.id))), [listaId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // ao mudar as listas ou o filtro, já marca todos os cards que aparecem
+  const chaveFiltro = [...listasMarcadas].sort().join(',') + soSemConta
+  useEffect(() => setMarcados(new Set(daLista.map((c) => c.id))), [chaveFiltro]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ativas = contas.filter((c) => c.ativa).sort((a, b) => a.apelido.localeCompare(b.apelido, 'pt-BR', { numeric: true }))
   const escolhidos = daLista.filter((c) => marcados.has(c.id))
@@ -96,16 +101,38 @@ export function VeicularEmLote({
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-2">
-          <Campo rotulo="Cards da lista">
-            <select value={listaId} onChange={(e) => setListaId(e.target.value)} className={entrada}>
-              {comCards.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nome}
-                </option>
-              ))}
-              <option value="">Todas as listas</option>
-            </select>
-          </Campo>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-sm font-medium">Listas</p>
+              <span className="flex gap-2 text-xs">
+                <button onClick={() => setListasMarcadas(new Set(comCards.map((l) => l.id)))} className="text-info hover:underline">
+                  Todas
+                </button>
+                <button onClick={() => setListasMarcadas(new Set())} className="text-info hover:underline">
+                  Nenhuma
+                </button>
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {comCards.map((l) => {
+                const on = listasMarcadas.has(l.id)
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => setListasMarcadas((m) => alternar(m, l.id))}
+                    className={`rounded-full border px-2.5 py-1 text-xs ${on ? 'border-accent bg-accent-soft font-medium text-accent-strong' : 'border-line text-muted hover:bg-surface-2'}`}
+                  >
+                    {on ? '✓ ' : ''}
+                    {l.nome} ({doQuadro.filter((c) => c.lista_id === l.id).length})
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" checked={soSemConta} onChange={(e) => setSoSemConta(e.target.checked)} className="accent-[var(--c-accent)]" />
+            Só cards sem nenhuma conta
+          </label>
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted">
               {marcados.size} de {daLista.length} marcados
@@ -120,7 +147,7 @@ export function VeicularEmLote({
             </span>
           </div>
           <ul className="max-h-80 space-y-0.5 overflow-y-auto rounded-card border border-line p-1.5">
-            {daLista.length === 0 && <li className="px-2 py-1 text-sm text-muted">Nenhum card de ad nesta lista.</li>}
+            {daLista.length === 0 && <li className="px-2 py-1 text-sm text-muted">{listasMarcadas.size ? 'Nenhum card com esse filtro.' : 'Escolha uma ou mais listas.'}</li>}
             {daLista.map((c) => (
               <li key={c.id}>
                 <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-surface-2">
