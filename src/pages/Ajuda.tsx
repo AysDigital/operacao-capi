@@ -156,7 +156,7 @@ const TOPICOS: Topico[] = [
         'Veiculação por conta',
         'Uma linha por conta onde o anúncio está: status, ID do anúncio na Meta e data do status.',
         '"Escolher na lista da Meta" mostra os anúncios da conta já filtrados pelo AD/H/M do card. Também dá para colar o link do Gerenciador: o app tira o ID dele.',
-        'Rejeitado pede motivo e categoria. Ao sair de "Rejeitado", a rejeição vira um comentário no card.',
+        'Rejeitado: escolha "Rejeitado" no status, preencha motivo, categoria e data e clique em "Salvar rejeição". A rejeição fica salva nos comentários e no histórico do card, e a conta volta sozinha para "Não subido" (para ajustar e subir de novo). Para desistir do anúncio, mova o card para a lista Rejeitado.',
         '"+ Subir em outra conta" cria a veiculação numa conta nova.',
         'Subiu o mesmo AD de novo na mesma conta sem duplicar? Ele ganha outro ID na Meta: use "+ Outro ID nesta conta" embaixo do ID. Gasto e vendas do card somam todos os IDs; para tirar um, clique no ✕ ao lado dele.',
         'Métricas e vendas casam pelo ID do anúncio, nunca pelo nome: sem ID, o card não mostra números.',

@@ -164,7 +164,12 @@ function LinhaVeiculacao({
   const toast = useToast()
   const [confirmarPausa, setConfirmarPausa] = useState(false)
   const [idAnuncio, setIdAnuncio] = useState(v.meta_ad_id ?? '')
+  // Rejeição: é um acontecimento. Registra (motivo, categoria, data) e a conta volta para "Não subido".
+  const [rejeitando, setRejeitando] = useState(false)
   const [motivo, setMotivo] = useState(v.motivo_rejeicao ?? '')
+  const [categoria, setCategoria] = useState(v.categoria_rejeicao ?? '')
+  const [dataRej, setDataRej] = useState(diaDe(new Date().toISOString()))
+  const [gravandoRej, setGravandoRej] = useState(false)
   const [confirmarRemover, setConfirmarRemover] = useState(false)
 
   useEffect(() => setIdAnuncio(v.meta_ad_id ?? ''), [v.meta_ad_id])
@@ -201,6 +206,29 @@ function LinhaVeiculacao({
   }
 
   const rejeitado = v.status === 'rejeitado'
+
+  /**
+   * Grava a rejeição (status "Rejeitado" com motivo, categoria e data, que vai para o histórico)
+   * e logo volta a conta para "Não subido": o banco guarda a rejeição nos comentários do card.
+   */
+  async function salvarRejeicao() {
+    if (!categoria) return toast('ruim', 'Escolha a categoria da rejeição.')
+    if (!/^20\d{2}-\d{2}-\d{2}$/.test(dataRej)) return toast('ruim', 'Informe a data da rejeição.')
+    setGravandoRej(true)
+    const ok = await salvar(
+      ops()
+        .from('veiculacoes')
+        .update({ status: 'rejeitado', motivo_rejeicao: motivo.trim() || null, categoria_rejeicao: categoria, data_status: `${dataRej}T12:00:00-03:00` })
+        .eq('id', v.id),
+    )
+    if (ok) await salvar(ops().from('veiculacoes').update({ status: 'nao_subido' }).eq('id', v.id))
+    setGravandoRej(false)
+    if (!ok) return
+    setRejeitando(false)
+    setMotivo('')
+    setCategoria('')
+    toast('bom', `Rejeição em ${conta?.apelido ?? 'conta'} registrada nos comentários do card. A conta voltou para "Não subido".`)
+  }
   const sugestao = card.tipo === 'ad' ? `ad${card.ad_num}-h${card.hook_num}-m${card.var_num}` : ''
 
   return (
@@ -282,11 +310,13 @@ function LinhaVeiculacao({
         <label className="text-xs text-muted">
           Status
           <select
-            value={v.status}
+            value={rejeitando ? 'rejeitado' : v.status}
             onChange={(e) => {
               const novo = e.target.value as StatusVeiculacao
               // linha vermelha do manual: não pausar em validação ou pré-escala (só avisa)
               if (novo === 'pausado' && naoPausar(fase)) return setConfirmarPausa(true)
+              // rejeição: abre o registro; só grava ao clicar em Salvar
+              if (novo === 'rejeitado') return setRejeitando(true)
               mudar({ status: novo })
             }}
             className={`${campoPequeno} mt-0.5 text-ink`}
@@ -333,36 +363,51 @@ function LinhaVeiculacao({
         </label>
       </div>
 
-      {rejeitado && (
-        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_14rem]">
-          <label className="text-xs text-muted">
-            <Dica conteudo="Quando o status sair de Rejeitado (ou a conta for removida do card), a rejeição fica salva nos comentários do card, com data, categoria e motivo. Para rejeitar de vez, mova o card para a lista Rejeitado.">
-              <span>Motivo da rejeição</span>
+      {(rejeitando || rejeitado) && (
+        <div className="mt-2 rounded-control border border-bad/40 bg-bad-soft/40 p-2.5">
+          <p className="mb-2 text-xs font-medium text-bad">
+            <Dica conteudo="A rejeição é só um registro: fica salva nos comentários e no histórico do card (com data, categoria e motivo) e a conta volta para &quot;Não subido&quot;, para você ajustar e subir de novo. Para desistir do anúncio, mova o card para a lista Rejeitado.">
+              <span>🚫 Registrar rejeição em {conta?.apelido ?? 'conta'}</span>
             </Dica>
-            <textarea
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              onBlur={() => (motivo.trim() || null) !== (v.motivo_rejeicao ?? null) && mudar({ motivo_rejeicao: motivo.trim() || null })}
-              rows={2}
-              placeholder="O que a Meta disse"
-              className={`${campoPequeno} mt-0.5 resize-y text-ink`}
-            />
-          </label>
-          <label className="text-xs text-muted">
-            Categoria
-            <select
-              value={v.categoria_rejeicao ?? ''}
-              onChange={(e) => mudar({ categoria_rejeicao: e.target.value || null })}
-              className={`${campoPequeno} mt-0.5 text-ink`}
-            >
-              <option value="">Escolha</option>
-              {CATEGORIAS_REJEICAO.map((c) => (
-                <option key={c.valor} value={c.valor}>
-                  {c.nome}
-                </option>
-              ))}
-            </select>
-          </label>
+          </p>
+          <div className="grid gap-2 sm:grid-cols-[1fr_12rem_9.5rem]">
+            <label className="text-xs text-muted">
+              Motivo
+              <textarea
+                autoFocus
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                rows={2}
+                placeholder="O que a Meta disse"
+                className={`${campoPequeno} mt-0.5 resize-y text-ink`}
+              />
+            </label>
+            <label className="text-xs text-muted">
+              Categoria
+              <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={`${campoPequeno} mt-0.5 text-ink`}>
+                <option value="">Escolha</option>
+                {CATEGORIAS_REJEICAO.map((c) => (
+                  <option key={c.valor} value={c.valor}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs text-muted">
+              Data da rejeição
+              <input type="date" value={dataRej} max={diaDe(new Date().toISOString())} onChange={(e) => setDataRej(e.target.value)} className={`${campoPequeno} mt-0.5 text-ink`} />
+            </label>
+          </div>
+          <div className="mt-2 flex justify-end gap-2">
+            {!rejeitado && (
+              <button onClick={() => setRejeitando(false)} disabled={gravandoRej} className={`${botaoPequeno} text-muted hover:text-ink`}>
+                Cancelar
+              </button>
+            )}
+            <button onClick={salvarRejeicao} disabled={gravandoRej} className="rounded-control bg-bad px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
+              {gravandoRej ? 'Salvando…' : 'Salvar rejeição'}
+            </button>
+          </div>
         </div>
       )}
     </div>
