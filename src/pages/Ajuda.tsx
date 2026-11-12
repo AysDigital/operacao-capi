@@ -232,7 +232,7 @@ const TOPICOS: Topico[] = [
       i(
         'Página da oferta',
         'Visão geral: gasto, faturamento, ROAS, vendas, CPA, taxa de upsell, reembolsos, gráficos por dia, produção, top 5, links, anotações e histórico.',
-        'Checklist: o checklist de lançamento (copiado do modelo em Configurações), com prazo e anotação por item.',
+        'Checklist: o checklist de lançamento (copiado do modelo em Configurações), com prazo e anotação por item. Cada seção tem "Marcar todos" (ou "Desmarcar todos" quando já está completa).',
         'Testes: quadro de testes (Ideia → Em produção → Rodando → Concluído), com hipótese, resultado (venceu, perdeu…) e aprendizado. Arraste entre as colunas; o card ligado ao teste mostra "Teste: …".',
         'Ativos: as contas onde a oferta roda (vêm sozinhas das veiculações) e as páginas, pixels e domínios ligados a ela.',
       ),

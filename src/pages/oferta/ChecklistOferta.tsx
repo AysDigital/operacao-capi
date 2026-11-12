@@ -205,6 +205,17 @@ function Secao({
         <div className="w-36 shrink-0">
           <Progresso feitos={feitos} total={secao.itens.length} fina />
         </div>
+        {secao.itens.length > 0 && (
+          <button
+            onClick={() => {
+              const marcar = feitos < secao.itens.length
+              salvar(ops().from('checklist_itens').update({ feito: marcar }).eq('checklist_id', secao.id).eq('feito', !marcar))
+            }}
+            className={botaoTexto}
+          >
+            {feitos < secao.itens.length ? 'Marcar todos' : 'Desmarcar todos'}
+          </button>
+        )}
         <button onClick={() => setEditando(true)} className={botaoTexto}>
           Renomear
         </button>
