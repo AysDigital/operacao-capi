@@ -28,7 +28,7 @@
   - checklist de lançamento de oferta: feito na etapa 10 (017/018);
   - ativos: etapa 11 concluída (019–028);
   - Contingência (aquecimento, reserva, quedas e vida útil por fornecedor): etapa 12 (029), refeita como processo padrão na 032 (12/11/2026), testada e aprovada.
-- **Alerta de vendas (aberto desde 28/10):** em 28/10 a última venda em `public.purchases` era de 26/10 00:44. Diagnóstico em andamento (ver "Vendas que não chegam ao dashboard", no fim); nada foi alterado no dashboard, no banco nem na Mundpay.
+- **Vendas (resolvido em 12/11/2026):** o webhook está gravando normalmente desde 28/10. Houve um buraco só em 26 e 27/10 (nenhum pedido gravado). Ver "Vendas que não chegam ao dashboard", no fim.
 
 ## Etapa 1: fundação (27/10/2026)
 
@@ -496,4 +496,8 @@ Feito só com leitura: código do dashboard (cópia local de `AysDigital/projeto
 
 **Recuperação:** como a gravação é idempotente por `transaction_id`, reenviar os webhooks pela Mundpay recupera tudo, com UTM e `ad_id`. Sem reenvio, o export CSV da Mundpay mostra o que falta (`npm run conciliar` no dashboard compara, só leitura), mas importar pelo CSV não traz o `ad_id`, então essas vendas não entrariam nas métricas por anúncio.
 
-**Próximos passos (com a usuária):** consulta por dia em `public.purchases`; logs da rota `/api/webhook/mundpay` na Vercel; configuração e histórico de entregas do webhook na Mundpay; deploys e variáveis do projeto do dashboard por volta de 25–26/10. A correção só depois da aprovação dela.
+**Resultado (consulta por dia rodada pela usuária em 12/11):** pedidos gravados todos os dias de 19/10 a 12/11, **menos 26 e 27/10** (zero linhas). Em 28/10 voltou sozinho (5 aprovadas) e seguiu normal (9 a 33 aprovadas por dia em novembro). A usuária confirmou que a configuração da Mundpay está certa e que o dashboard mostra as vendas. Os três projetos (dashboard, financeiro, operação) usam o mesmo projeto do Supabase.
+
+- **Conclusão:** não há falha ativa. O alerta de 28/10 olhou logo depois de um buraco de dois dias (a "última venda 26/10 00:44" era em UTC, ou seja, 25/10 21:44 em Brasília). Nada a corrigir no dashboard nem no banco.
+- **Causa do buraco:** não dá para saber agora. O plano Hobby da Vercel só guarda 30 minutos de log, e o código do dashboard não mudou nesses dias. Pode ter sido indisponibilidade da Mundpay/Vercel ou simplesmente nenhum anúncio rodando.
+- **Pendente:** conferir no painel da Mundpay (ou na tela de extrato do financeiro, "vendas fora do dashboard") se houve vendas em 26 e 27/10. Se houver, reenviar esses webhooks pela Mundpay recupera as vendas com UTM e `ad_id`.
