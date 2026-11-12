@@ -13,6 +13,7 @@ const ICONES: Record<string, ReactNode> = {
   '/contingencia': <path d="M8 2.5c1.2 1.6 3 2.3 5 2.3v3.4c0 2.7-2.1 4.5-5 5.3-2.9-.8-5-2.6-5-5.3V4.8c2 0 3.8-.7 5-2.3Zm-1.8 5.6L7.5 9.5l2.6-2.8" />,
   '/veiculacoes': <path d="M3 6.5v3h2l4 3v-9l-4 3Zm8.5-1a3.5 3.5 0 0 1 0 5" />,
   '/modelos': <path d="M5.5 5.5h7v8h-7ZM3.5 10.5v-8h7" />,
+  '/ajuda': <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM6.3 6.2a1.8 1.8 0 0 1 3.5.6c0 1.2-1.8 1.5-1.8 2.6M8 11.3h.01" />,
   '/config': <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0-7.5v1.3m0 8.4v1.3M3.4 3.4l.9.9m7.4 7.4.9.9M2.5 8h1.3m8.4 0h1.3M3.4 12.6l.9-.9m7.4-7.4.9-.9" />,
 }
 
@@ -26,6 +27,7 @@ export const TELAS = [
   { caminho: '/veiculacoes', titulo: 'Veiculações' },
   { caminho: '/modelos', titulo: 'Modelos' },
   { caminho: '/config', titulo: 'Configurações' },
+  { caminho: '/ajuda', titulo: 'Ajuda' },
 ] as const
 
 const PROXIMO_TEMA: Record<Tema, Tema> = { sistema: 'claro', claro: 'escuro', escuro: 'sistema' }
