@@ -20,8 +20,8 @@
   - etapa 10: módulo de ofertas (página da oferta, checklist, testes);
   - etapa 11 (10/11/2026): ativos, com queda manual, inventário importado do documento de contingência (021–025), nomes das contas pela Meta, apelidos AC, grupos ativos/desativados, Possui/Acessa pela cadeia, só os pixels GE e Pontos de Comando (027) e o quadro manual de uso das contas (028).
   - etapa 12 refeita (12/11/2026, migration 032): Contingência padrão, com os ativos existentes já classificados pela usuária;
+  - etapa 13 (12/11/2026, migration 033): fases do manual de tráfego, no-spend, mid-spender e No-Bid. Por enquanto todas as contas ficam "Sem papel" (decisão da usuária);
   - ajustes de 12/11/2026: Veicular em lote (várias listas e filtro de cards sem conta), Preencher IDs da Meta, página de Ajuda, Marcar todos no checklist da oferta e vários IDs da Meta por veiculação (031).
-- **Aguardando teste da usuária (12/11/2026):** etapa 13, fases do manual de tráfego (033).
 - **Inventário hoje:** 10 perfis, 13 BMs, 35 contas, 16 páginas, 2 pixels.
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
@@ -525,3 +525,11 @@ Manual de Bidcap da usuária: cada anúncio passa por Validação (D1–D3 desde
 - Ranking: botão "Mandar para No-Bid" nas linhas mid-spender e filtro "Mid-spenders ainda não enviados".
 - Pausar uma veiculação em Validação ou Pré-escala mostra o aviso do manual com "Pausar mesmo assim" (não bloqueia).
 - Ajuda: tópico "Manual de tráfego (Bidcap)".
+
+## Ajustes de 12/11/2026 (depois da etapa 13)
+
+- **Acesso do Luciano:** login próprio criado pela usuária no Supabase Auth e cadastrado à mão em `ops.membros` (nome "Luciano"), pelo SQL Editor, sem migration (o e-mail não entra no código). O login antigo compartilhado continua como "May e Luciano".
+- **Métricas com dias faltando (cards de PC sem gasto):** a busca na Meta pegava só os últimos 3 dias. Quando ninguém abria o app por mais de 3 dias, os dias do meio ficavam sem números para sempre. Na oferta PC, os anúncios rodando na Boulevard tinham só 3 a 6 dias de dados desde 04/11, e o último dia era 08 a 10/11.
+  - Correção (`api/meta-metricas.ts`): a busca agora recomeça 2 dias antes do fim da última busca em que todas as contas responderam (no mínimo os últimos 3 dias, no máximo 90).
+  - Novo botão "Refazer 90 dias" na seção Métricas do card, para preencher os buracos que já existiam.
+  - Os cards de PC só com veiculação pausada na Nina (desde 03 a 05/11) aparecem sem números porque a frente do card mostra só o período de avaliação (7 dias) e só quando alguma conta está rodando. AD75, AD76, AD82 e AD83 na Nina nunca tiveram gasto registrado.

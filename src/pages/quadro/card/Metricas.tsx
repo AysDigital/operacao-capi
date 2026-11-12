@@ -63,10 +63,10 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
     carregar()
   }, [carregar, versao])
 
-  async function atualizar() {
+  async function atualizar(completo = false) {
     setAtualizando(true)
     try {
-      const r = await atualizarMetricas()
+      const r = await atualizarMetricas(completo)
       if (r.falhas.length) toast('ruim', `Meta: ${r.falhas.map((f) => `${f.conta} (${f.erro})`).join('; ')}`)
       else toast('bom', 'Métricas da Meta atualizadas.')
       await carregar()
@@ -213,9 +213,14 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
 
       <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
         Meta atualizada {ultima ? `em ${formatarDataHora(ultima)}` : 'ainda não'} · vendas ao vivo do dashboard
-        <button onClick={atualizar} disabled={atualizando} className={`${botaoPequeno} bg-surface-2 disabled:opacity-50`}>
+        <button onClick={() => atualizar()} disabled={atualizando} className={`${botaoPequeno} bg-surface-2 disabled:opacity-50`}>
           {atualizando ? 'Buscando na Meta…' : 'Atualizar agora'}
         </button>
+        <Dica conteudo="Busca de novo na Meta os últimos 90 dias de todas as contas ativas. Use se algum dia ficou sem números. Demora mais que a atualização normal.">
+          <button onClick={() => atualizar(true)} disabled={atualizando} className={`${botaoPequeno} disabled:opacity-50`}>
+            Refazer 90 dias
+          </button>
+        </Dica>
       </p>
     </section>
   )

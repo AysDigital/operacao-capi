@@ -164,7 +164,7 @@ const TOPICOS: Topico[] = [
       i(
         'Métricas',
         'Gasto, faturamento, ROAS, vendas, CPA, CPM, CTR e hook rate, em 7 dias, 30 dias ou tudo. "Ver por conta" separa por veiculação.',
-        'As métricas da Meta são buscadas sozinhas a cada hora (ou em "Atualizar agora").',
+        'As métricas da Meta são buscadas sozinhas a cada hora (ou em "Atualizar agora"), desde o último dia que já tinha chegado. Se algum dia ficou sem números, use "Refazer 90 dias".',
         'Faturamento = vendas aprovadas com o ID do anúncio (principal + upsell + downsell). Vendas e CPA contam só o produto principal.',
       ),
       i(

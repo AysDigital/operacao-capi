@@ -7,8 +7,10 @@ import { autenticar, chaveMeta, diaBrasilia, erro, graphPaginado, json, ptax, ty
  * cada anúncio das contas ativas de ops.contas_anuncio e grava em
  * ops.metricas_anuncio_dia (com o JWT do usuário, pelo RLS).
  *
- * Período: últimos 3 dias (a Meta ainda ajusta os números recentes). Na primeira
- * vez, ou com "completo", os últimos 90 dias. Contas em dólar: PTAX de venda do dia.
+ * Período: desde 2 dias antes do fim da última busca em que todas as contas
+ * responderam (a Meta ainda ajusta os números recentes), e no mínimo os últimos 3 dias.
+ * Assim, dias em que ninguém abriu o app não ficam sem números. Na primeira vez,
+ * ou com "completo", os últimos 90 dias. Contas em dólar: PTAX de venda do dia.
  */
 
 const DIAS_HISTORICO = 90
@@ -70,7 +72,23 @@ export async function POST(request: Request): Promise<Response> {
   if (!lista.length) return erro('Nenhuma conta ativa com ID do Meta em Configurações → Contas de anúncio.', 404)
 
   const { data: algum } = await ops.from('metricas_anuncio_dia').select('dia').limit(1)
-  const desde = corpo.completo || !algum?.length ? diaBrasilia(-DIAS_HISTORICO) : diaBrasilia(-DIAS_RECENTES)
+  // última busca em que nenhuma conta falhou: recomeça 2 dias antes do fim dela
+  const { data: ultimaBoa } = await ops
+    .from('metricas_buscas')
+    .select('ate')
+    .eq('falhas', '[]')
+    .order('feita_em', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const limite = diaBrasilia(-DIAS_HISTORICO)
+  let desde = diaBrasilia(-DIAS_RECENTES)
+  if (corpo.completo || !algum?.length || !ultimaBoa) desde = limite
+  else {
+    const d = new Date(`${ultimaBoa.ate}T12:00:00Z`)
+    d.setUTCDate(d.getUTCDate() - 2)
+    const retomada = d.toISOString().slice(0, 10)
+    if (retomada < desde) desde = retomada < limite ? limite : retomada
+  }
   const ate = diaBrasilia()
 
   // Poucas contas por vez, para não esbarrar no limite de chamadas da Meta.
