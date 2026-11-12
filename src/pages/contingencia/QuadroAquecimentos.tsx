@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Aviso, Dica } from '../../components/ds'
-import { nomeDe, type Inventario } from '../../lib/ativos'
-import { atrasado, diaAtual, diaDoQuadro, diasEntre, NOME_TIPO, progresso, TIPOS_AQUECIVEIS, type Aquecimento, type TipoAquecivel } from '../../lib/contingencia'
-import { diaBrasilia, formatarDiaIso } from '../../lib/format'
+import { caido, nomeDe, type Inventario, type Registro } from '../../lib/ativos'
+import { atrasado, diaAtual, diaDoQuadro, NOME_TIPO, progresso, situacaoDe, TIPOS_AQUECIVEIS, type Aquecimento, type TipoAquecivel } from '../../lib/contingencia'
+import { formatarDiaIso } from '../../lib/format'
 
-/** Quantos dias a coluna "Pronto" mostra os que acabaram de ficar prontos. */
-const DIAS_NO_PRONTO = 14
+/** Ativo pronto sem aquecimento concluído no app (classificado como pronto). */
+type ProntoSemCard = { tipo: TipoAquecivel; r: Registro }
 
 /**
  * Quadro de aquecimento: uma coluna por dia (Dia 1, Dia 2, …) e "Pronto".
@@ -25,10 +25,26 @@ export function QuadroAquecimentos({
   onClassificar: () => void
 }) {
   const [filtro, setFiltro] = useState<TipoAquecivel | ''>('')
-  const hoje = diaBrasilia()
   const doFiltro = aquecimentos.filter((a) => !filtro || a.ativo_tipo === filtro)
   const andamento = doFiltro.filter((a) => a.status === 'andamento')
-  const prontosRecentes = doFiltro.filter((a) => a.status === 'concluido' && a.fim && diasEntre(a.fim, hoje) <= DIAS_NO_PRONTO)
+
+  // Pronto: todo ativo pronto e não caído. Quem passou pelo aquecimento abre o checklist (o mais recente);
+  // quem foi classificado como pronto aparece num cartão simples.
+  const prontosComCard: Aquecimento[] = []
+  const prontosSemCard: ProntoSemCard[] = []
+  for (const tipo of TIPOS_AQUECIVEIS) {
+    if (filtro && filtro !== tipo) continue
+    for (const r of inv[tipo]) {
+      if (situacaoDe(r) !== 'pronto' || caido(tipo, r.status as string)) continue
+      const ultimo = aquecimentos
+        .filter((a) => a.ativo_tipo === tipo && a.ativo_id === r.id && a.status === 'concluido')
+        .sort((a, b) => String(b.fim).localeCompare(String(a.fim)))[0]
+      if (ultimo) prontosComCard.push(ultimo)
+      else prontosSemCard.push({ tipo, r })
+    }
+  }
+  prontosComCard.sort((a, b) => String(b.fim).localeCompare(String(a.fim)))
+  prontosSemCard.sort((a, b) => a.tipo.localeCompare(b.tipo) || nomeDe(a.tipo, a.r).localeCompare(nomeDe(b.tipo, b.r), 'pt-BR', { numeric: true }))
   const maxDias = Math.max(1, ...andamento.map((a) => a.duracao_dias))
   const dias = Array.from({ length: maxDias }, (_, i) => i + 1)
   const atrasados = andamento.filter(atrasado).length
@@ -70,9 +86,10 @@ export function QuadroAquecimentos({
         ))}
         <Coluna
           titulo="Pronto"
-          dica={`Checklist completo: o ativo está pronto para uso. Aparecem aqui os que ficaram prontos nos últimos ${DIAS_NO_PRONTO} dias.`}
+          dica="Ativos prontos para uso (não caídos): os que completaram o checklist e os que você classificou como prontos."
           pronto
-          cards={prontosRecentes}
+          cards={prontosComCard}
+          semCard={prontosSemCard}
           inv={inv}
           onAbrir={onAbrir}
         />
@@ -86,6 +103,7 @@ function Coluna({
   dica,
   pronto,
   cards,
+  semCard = [],
   inv,
   onAbrir,
 }: {
@@ -93,6 +111,7 @@ function Coluna({
   dica?: string
   pronto?: boolean
   cards: Aquecimento[]
+  semCard?: ProntoSemCard[]
   inv: Inventario
   onAbrir: (a: Aquecimento) => void
 }) {
@@ -101,11 +120,20 @@ function Coluna({
       <header className="flex items-center gap-2 px-1 pb-2">
         {pronto && <span aria-hidden className="text-good">✓</span>}
         <h2 className="flex-1 text-sm font-semibold">{dica ? <Dica conteudo={dica}>{titulo}</Dica> : titulo}</h2>
-        <span className="text-xs text-muted tabular-nums">{cards.length}</span>
+        <span className="text-xs text-muted tabular-nums">{cards.length + semCard.length}</span>
       </header>
       <div className="flex min-h-24 flex-col gap-1.5">
         {cards.map((a) => (
           <Cartao key={a.id} a={a} inv={inv} onAbrir={() => onAbrir(a)} />
+        ))}
+        {semCard.map(({ tipo, r }) => (
+          <div key={`${tipo}:${r.id}`} className="rounded-control border border-line bg-surface p-2.5 text-sm shadow-sm">
+            <span className="flex items-baseline gap-2">
+              <span className="text-xs text-muted">{NOME_TIPO[tipo].um}</span>
+              <span className="ml-auto text-xs text-good">✓ classificado</span>
+            </span>
+            <span className="mt-0.5 block font-medium break-words">{nomeDe(tipo, r)}</span>
+          </div>
         ))}
       </div>
     </section>

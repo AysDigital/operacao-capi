@@ -310,7 +310,7 @@ const TOPICOS: Topico[] = [
         'Colunas Dia 1, Dia 2… e Pronto. O card fica no primeiro dia que ainda tem tarefa por marcar.',
         'Borda vermelha e "atrasado" = o calendário já passou daquele dia (contado do início) e ainda falta tarefa.',
         'Dentro do card: "Marcar todos" em cada dia, "Marcar tudo (pronto)" para fechar de uma vez, Interromper (com motivo, o ativo volta para "A classificar") e Excluir. Desmarcar uma tarefa de um card pronto reabre o aquecimento.',
-        'Os botões do topo filtram por tipo. A coluna Pronto mostra os que ficaram prontos nos últimos 14 dias.',
+        'Os botões do topo filtram por tipo. A coluna Pronto mostra todos os ativos prontos e não caídos: os que completaram o checklist (clique para ver) e os que você classificou como prontos.',
       ),
       i(
         'A classificar',
