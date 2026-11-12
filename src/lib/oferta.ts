@@ -185,7 +185,7 @@ export async function buscarMetricasOferta(ofertaId: string, dias: number): Prom
   const desde = desdeDe(dias)
   const [linhas, ids, cob] = await Promise.all([
     buscarRanking(ofertaId, dias, 'anuncio'),
-    ops().from('veiculacoes').select('meta_ad_id, cards!inner(oferta_id)').eq('cards.oferta_id', ofertaId).not('meta_ad_id', 'is', null),
+    ops().from('veiculacoes_anuncios').select('meta_ad_id').eq('oferta_id', ofertaId),
     ops().rpc('cobertura_oferta', { p_oferta: ofertaId, p_desde: desde }),
   ])
   if (ids.error) throw new Error(ids.error.message)

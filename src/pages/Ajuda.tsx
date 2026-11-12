@@ -157,6 +157,7 @@ const TOPICOS: Topico[] = [
         '"Escolher na lista da Meta" mostra os anúncios da conta já filtrados pelo AD/H/M do card. Também dá para colar o link do Gerenciador: o app tira o ID dele.',
         'Rejeitado pede motivo e categoria. Ao sair de "Rejeitado", a rejeição vira um comentário no card.',
         '"+ Subir em outra conta" cria a veiculação numa conta nova.',
+        'Subiu o mesmo AD de novo na mesma conta sem duplicar? Ele ganha outro ID na Meta: use "+ Outro ID nesta conta" embaixo do ID. Gasto e vendas do card somam todos os IDs; para tirar um, clique no ✕ ao lado dele.',
         'Métricas e vendas casam pelo ID do anúncio, nunca pelo nome: sem ID, o card não mostra números.',
       ),
       i(

@@ -35,6 +35,7 @@ import {
   type Lista,
   type MetricasCards,
   type OfertaQuadro,
+  idsDaVeiculacao,
 } from '../../lib/quadro'
 import { ops, supabase } from '../../lib/supabase'
 import { BarraFiltros } from './BarraFiltros'
@@ -156,7 +157,7 @@ export function Quadro({
   const idsAnuncios = useMemo(
     () =>
       (cards ?? [])
-        .flatMap((c) => c.veiculacoes.map((v) => v.meta_ad_id))
+        .flatMap((c) => c.veiculacoes.flatMap(idsDaVeiculacao))
         .filter(Boolean)
         .sort()
         .join(','),

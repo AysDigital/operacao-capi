@@ -12,7 +12,7 @@ import {
   ultimaBusca,
   type Numeros,
 } from '../../../lib/metricas'
-import { gravarLocal, lerLocal, type ContaQuadro } from '../../../lib/quadro'
+import { gravarLocal, idsDaVeiculacao, lerLocal, type ContaQuadro } from '../../../lib/quadro'
 import { botaoPequeno, ICONES, TituloSecao } from './comum'
 
 const brl = (v: number | null) => (v === null ? '—' : formatarCentavos(Math.round(v * 100)))
@@ -44,8 +44,8 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
   const [atualizando, setAtualizando] = useState(false)
   const [porConta, setPorConta] = useState(false)
 
-  const comId = card.veiculacoes.filter((v) => v.meta_ad_id)
-  const ids = comId.map((v) => v.meta_ad_id!)
+  const comId = card.veiculacoes.filter((v) => idsDaVeiculacao(v).length)
+  const ids = comId.flatMap(idsDaVeiculacao)
   const chave = ids.join(',')
 
   const carregar = useCallback(async () => {
@@ -168,7 +168,7 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
         />
       </div>
 
-      {comId.length > 1 && (
+      {(comId.length > 1 || ids.length > comId.length) && (
         <button onClick={() => setPorConta((v) => !v)} className={`${botaoPequeno} mt-2 bg-surface-2`}>
           {porConta ? 'Ocultar por conta' : 'Ver por conta'}
         </button>
@@ -189,11 +189,14 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
             </thead>
             <tbody className="divide-y divide-line tabular-nums">
               {comId.map((v) => {
-                const n = porAnuncio.get(v.meta_ad_id!)!
+                const n = somar(idsDaVeiculacao(v).map((id) => porAnuncio.get(id)!))
                 const x = indicadores(n)
                 return (
                   <tr key={v.id}>
-                    <td className="px-2 py-1.5 font-mono">{porContaId.get(v.conta_id)?.apelido ?? '?'}</td>
+                    <td className="px-2 py-1.5 font-mono">
+                      {porContaId.get(v.conta_id)?.apelido ?? '?'}
+                      {idsDaVeiculacao(v).length > 1 && <span className="ml-1 font-sans text-muted">({idsDaVeiculacao(v).length} IDs)</span>}
+                    </td>
                     <td className="px-2 py-1.5 text-right">{brl(n.gasto)}</td>
                     <td className="px-2 py-1.5 text-right">{num(n.vendas)}</td>
                     <td className="px-2 py-1.5 text-right">{brl(n.faturamento)}</td>

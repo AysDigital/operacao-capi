@@ -53,7 +53,7 @@ export async function POST(request: Request): Promise<Response> {
   if (error) return erro(error.message, 500)
   const pendentes = (data ?? []) as unknown as Pendente[]
 
-  const { data: usados, error: e2 } = await auth.ops.from('veiculacoes').select('meta_ad_id').not('meta_ad_id', 'is', null)
+  const { data: usados, error: e2 } = await auth.ops.from('veiculacoes_anuncios').select('meta_ad_id')
   if (e2) return erro(e2.message, 500)
   const jaUsados = new Set((usados ?? []).map((u) => u.meta_ad_id as string))
 

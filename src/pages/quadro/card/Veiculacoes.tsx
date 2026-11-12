@@ -150,6 +150,7 @@ function LinhaVeiculacao({
   }
 
   const rejeitado = v.status === 'rejeitado'
+  const sugestao = card.tipo === 'ad' ? `ad${card.ad_num}-h${card.hook_num}-m${card.var_num}` : ''
 
   return (
     <div className={`rounded-control border-l-4 bg-surface-2/60 p-3 ${COR_STATUS[v.status]}`}>
@@ -206,13 +207,8 @@ function LinhaVeiculacao({
             placeholder="Número ou link do anúncio"
             className={`${campoPequeno} mt-0.5 font-mono text-ink`}
           />
-          {conta?.meta_ad_account_id && (
-            <EscolherAnuncio
-              contaId={v.conta_id}
-              sugestao={card.tipo === 'ad' ? `ad${card.ad_num}-h${card.hook_num}-m${card.var_num}` : ''}
-              onEscolher={(a) => salvarId(a.id, a.nome)}
-            />
-          )}
+          {conta?.meta_ad_account_id && <EscolherAnuncio contaId={v.conta_id} sugestao={sugestao} onEscolher={(a) => salvarId(a.id, a.nome)} />}
+          {v.meta_ad_id && <IdsExtras v={v} temConta={!!conta?.meta_ad_account_id} sugestao={sugestao} salvar={salvar} />}
         </div>
         <label className="text-xs text-muted">
           Data do status
@@ -258,6 +254,90 @@ function LinhaVeiculacao({
               ))}
             </select>
           </label>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Outros IDs do mesmo AD nesta conta: quando o anúncio é subido de novo sem
+ * duplicar, a Meta dá um ID novo. Métricas e vendas somam todos.
+ */
+function IdsExtras({ v, temConta, sugestao, salvar }: { v: VeiculacaoDetalhe; temConta: boolean; sugestao: string; salvar: Salvar }) {
+  const toast = useToast()
+  const [novo, setNovo] = useState<string | null>(null)
+  const [removendo, setRemovendo] = useState<string | null>(null)
+
+  async function adicionar(texto: string, nomeNoMeta?: string) {
+    const t = texto.trim()
+    if (!t) return setNovo(null)
+    const id = extrairIdAnuncio(t)
+    if (!id) return toast('ruim', 'Não achei o ID do anúncio nesse texto. Cole o número ou o link do anúncio no Gerenciador.')
+    if (id === v.meta_ad_id || v.ids_extras.some((e) => e.meta_ad_id === id)) return toast('ruim', 'Esse ID já está nesta conta.')
+    const ok = await salvar(ops().from('veiculacoes_ids_extras').insert({ veiculacao_id: v.id, meta_ad_id: id, nome_no_meta: nomeNoMeta ?? null }), {
+      veiculacoes_ids_extras_meta_ad_id_key: 'Esse ID de anúncio já está em outro card.',
+    })
+    if (ok) setNovo(null)
+  }
+
+  return (
+    <div className="mt-1.5 space-y-1">
+      {v.ids_extras.map((e) => (
+        <div key={e.id} className="flex items-center gap-1.5">
+          <span className="rounded bg-surface px-1.5 py-0.5 font-mono text-[11px] text-ink" title={e.nome_no_meta ?? undefined}>
+            {e.meta_ad_id}
+          </span>
+          {removendo === e.id ? (
+            <span className="flex items-center gap-1.5 text-[11px] text-bad">
+              Tirar este ID?
+              <button onClick={() => salvar(ops().from('veiculacoes_ids_extras').delete().eq('id', e.id))} className="font-medium hover:underline">
+                Tirar
+              </button>
+              <button onClick={() => setRemovendo(null)} className="text-muted hover:text-ink">
+                Cancelar
+              </button>
+            </span>
+          ) : (
+            <button onClick={() => setRemovendo(e.id)} aria-label="Tirar este ID" className="text-[11px] text-muted hover:text-bad">
+              ✕
+            </button>
+          )}
+        </div>
+      ))}
+      {novo === null ? (
+        <Dica conteudo="Use quando o mesmo AD foi subido de novo nesta conta sem duplicar e ganhou outro ID na Meta. Gasto e vendas do card somam todos os IDs.">
+          <button type="button" onClick={() => setNovo('')} className="text-[11px] text-info hover:underline">
+            + Outro ID nesta conta
+          </button>
+        </Dica>
+      ) : (
+        <div>
+          <input
+            autoFocus
+            aria-label="Outro ID do anúncio"
+            value={novo}
+            onChange={(e) => setNovo(e.target.value)}
+            onPaste={(e) => {
+              e.preventDefault()
+              const colado = e.clipboardData.getData('text')
+              setNovo(colado)
+              adicionar(colado)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') adicionar(novo)
+              if (e.key === 'Escape') setNovo(null)
+            }}
+            onBlur={() => novo.trim() && adicionar(novo)}
+            placeholder="Número ou link do outro anúncio"
+            className={`${campoPequeno} font-mono text-ink`}
+          />
+          <span className="flex gap-3">
+            {temConta && <EscolherAnuncio contaId={v.conta_id} sugestao={sugestao} onEscolher={(a) => adicionar(a.id, a.nome)} />}
+            <button type="button" onClick={() => setNovo(null)} className="mt-1 text-[11px] text-muted hover:text-ink">
+              Cancelar
+            </button>
+          </span>
         </div>
       )}
     </div>

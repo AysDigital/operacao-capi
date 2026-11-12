@@ -14,7 +14,10 @@ export type VeiculacaoDetalhe = {
   data_status: string
   motivo_rejeicao: string | null
   categoria_rejeicao: string | null
+  /** Outros IDs da Meta do mesmo AD nesta conta (subido de novo sem duplicar). */
+  ids_extras: IdExtra[]
 }
+export type IdExtra = { id: string; meta_ad_id: string; nome_no_meta: string | null }
 export type Membro = { user_id: string; nome: string; cor: string | null }
 
 export type CardDetalhe = {
@@ -55,7 +58,8 @@ export async function buscarCardDetalhe(id: string): Promise<CardDetalhe | null>
        parent_card_id, motivo_versao, origem:parent_card_id(id, nome, ad_num, hook_num, var_num),
        card_etiquetas(etiqueta_id), card_membros(user_id),
        anexos(id, titulo, url, ordem),
-       veiculacoes(id, conta_id, status, meta_ad_id, nome_no_meta, data_status, motivo_rejeicao, categoria_rejeicao),
+       veiculacoes(id, conta_id, status, meta_ad_id, nome_no_meta, data_status, motivo_rejeicao, categoria_rejeicao,
+         ids_extras:veiculacoes_ids_extras(id, meta_ad_id, nome_no_meta)),
        checklists(id, titulo, ordem, checklist_itens(id, checklist_id, texto, feito, ordem)),
        testes:testes_oferta(id, titulo, status)`,
     )

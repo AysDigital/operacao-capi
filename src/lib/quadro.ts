@@ -9,7 +9,11 @@ export type ContaQuadro = { id: string; apelido: string; nome: string; bm_nome: 
 export type TipoCard = 'ad' | 'vsl' | 'outro'
 export type StatusVeiculacao = 'nao_subido' | 'em_analise' | 'rodando' | 'rejeitado' | 'pausado'
 
-export type Veiculacao = { conta_id: string; status: StatusVeiculacao; data_status: string; meta_ad_id: string | null }
+export type Veiculacao = { conta_id: string; status: StatusVeiculacao; data_status: string; meta_ad_id: string | null; ids_extras?: { meta_ad_id: string }[] }
+
+/** Todos os IDs da Meta de uma veiculação: o principal e os extras. */
+export const idsDaVeiculacao = (v: { meta_ad_id: string | null; ids_extras?: { meta_ad_id: string }[] }): string[] =>
+  [v.meta_ad_id, ...(v.ids_extras ?? []).map((e) => e.meta_ad_id)].filter((x): x is string => !!x)
 
 export type CardQuadro = {
   id: string
@@ -69,7 +73,7 @@ export const ORDENACOES: { nome: string; comparar: (a: CardQuadro, b: CardQuadro
 export const LISTAS_SEM_PRAZO = ['Standby', 'Em veiculação', 'Rejeitado']
 
 const CAMPOS_CARD = `id, oferta_id, lista_id, posicao, tipo, nome, vencedor, arquivado, lista_desde, criado_em, prazo,
-  card_etiquetas(etiqueta_id), veiculacoes(conta_id, status, data_status, meta_ad_id),
+  card_etiquetas(etiqueta_id), veiculacoes(conta_id, status, data_status, meta_ad_id, ids_extras:veiculacoes_ids_extras(meta_ad_id)),
   anexos(count), comentarios(count), checklists(checklist_itens(feito))`
 
 type CardBanco = Omit<CardQuadro, 'etiquetas' | 'veiculacoes' | 'anexos' | 'comentarios' | 'checklist'> & {
