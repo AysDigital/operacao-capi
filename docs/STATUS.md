@@ -19,14 +19,15 @@
   - etapa 9: modelos de card;
   - etapa 10: módulo de ofertas (página da oferta, checklist, testes);
   - etapa 11 (10/11/2026): ativos, com queda manual, inventário importado do documento de contingência (021–025), nomes das contas pela Meta, apelidos AC, grupos ativos/desativados, Possui/Acessa pela cadeia, só os pixels GE e Pontos de Comando (027) e o quadro manual de uso das contas (028).
+  - etapa 12 refeita (12/11/2026, migration 032): Contingência padrão, com os ativos existentes já classificados pela usuária.
 - **Inventário hoje:** 10 perfis, 13 BMs, 35 contas, 16 páginas, 2 pixels.
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
   - modelos de card: feito na etapa 9 (016);
   - checklist de lançamento de oferta: feito na etapa 10 (017/018);
   - ativos: etapa 11 concluída (019–028);
-  - Contingência (aquecimento, reserva, quedas e vida útil por fornecedor): etapa 12 (029), refeita como processo padrão na 032 (12/11/2026), aguardando teste.
-- **Aguardando teste da usuária (12/11/2026):** Contingência padrão (032, com a classificação dos ativos existentes); Veicular em lote (várias listas e filtro de cards sem conta); Preencher IDs da Meta; página de Ajuda; Marcar todos no checklist da oferta; vários IDs da Meta por veiculação (031).
+  - Contingência (aquecimento, reserva, quedas e vida útil por fornecedor): etapa 12 (029), refeita como processo padrão na 032 (12/11/2026), testada e aprovada.
+- **Aguardando teste da usuária (12/11/2026):** Veicular em lote (várias listas e filtro de cards sem conta); Preencher IDs da Meta; página de Ajuda; Marcar todos no checklist da oferta; vários IDs da Meta por veiculação (031).
 - **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
 
 ## Etapa 1: fundação (27/10/2026)
