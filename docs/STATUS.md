@@ -19,7 +19,8 @@
   - etapa 9: modelos de card;
   - etapa 10: módulo de ofertas (página da oferta, checklist, testes);
   - etapa 11 (10/11/2026): ativos, com queda manual, inventário importado do documento de contingência (021–025), nomes das contas pela Meta, apelidos AC, grupos ativos/desativados, Possui/Acessa pela cadeia, só os pixels GE e Pontos de Comando (027) e o quadro manual de uso das contas (028).
-  - etapa 12 refeita (12/11/2026, migration 032): Contingência padrão, com os ativos existentes já classificados pela usuária.
+  - etapa 12 refeita (12/11/2026, migration 032): Contingência padrão, com os ativos existentes já classificados pela usuária;
+  - ajustes de 12/11/2026: Veicular em lote (várias listas e filtro de cards sem conta), Preencher IDs da Meta, página de Ajuda, Marcar todos no checklist da oferta e vários IDs da Meta por veiculação (031).
 - **Inventário hoje:** 10 perfis, 13 BMs, 35 contas, 16 páginas, 2 pixels.
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
@@ -27,12 +28,11 @@
   - checklist de lançamento de oferta: feito na etapa 10 (017/018);
   - ativos: etapa 11 concluída (019–028);
   - Contingência (aquecimento, reserva, quedas e vida útil por fornecedor): etapa 12 (029), refeita como processo padrão na 032 (12/11/2026), testada e aprovada.
-- **Aguardando teste da usuária (12/11/2026):** Veicular em lote (várias listas e filtro de cards sem conta); Preencher IDs da Meta; página de Ajuda; Marcar todos no checklist da oferta; vários IDs da Meta por veiculação (031).
-- **Alerta (28/10):** nenhuma venda gravada no dashboard desde 26/10 00:44 (possível webhook parado); afeta o faturamento das métricas.
+- **Alerta de vendas (aberto desde 28/10):** em 28/10 a última venda em `public.purchases` era de 26/10 00:44. Diagnóstico em andamento (ver "Vendas que não chegam ao dashboard", no fim); nada foi alterado no dashboard, no banco nem na Mundpay.
 
 ## Etapa 1: fundação (27/10/2026)
 
-**App:** React + Vite + TS + Tailwind, mesma identidade do financeiro. Login por e-mail e senha (sem cadastro), verificação de acesso por `ops.is_membro()`, menu lateral recolhível com Quadros, Ofertas, Veiculações, Modelos e Configurações (todas "Em construção").
+**App:** React + Vite + TS + Tailwind, mesma identidade do financeiro. Login por e-mail e senha (sem cadastro), verificação de acesso por `ops.is_membro()`, menu lateral recolhível com Quadros, Ofertas, Veiculações, Modelos e Configurações (todas "Em construção"; a aba Veiculações foi removida em 12/11/2026, porque as veiculações vivem dentro dos cards).
 
 **Banco (`supabase/migrations/001_ops_schema.sql`, schema `ops`):**
 - `membros` (quem acessa; cadastrado à mão), `ofertas`, `contas_anuncio`, `listas` (10 colunas fixas, com seed), `cards`, `card_membros`, `etiquetas`, `card_etiquetas`, `anexos`, `comentarios`, `atividades`, `veiculacoes`, `checklists`, `checklist_itens`, `modelos_card`, `modelos_card_etiquetas`, `modelos_checklist_oferta` (1 modelo vazio: "Lançamento de oferta").
@@ -473,3 +473,27 @@ Diagnóstico em `DIAGNOSTICO_METRICAS.md` (etapa 6a). A usuária autorizou tudo 
   - gatilho `aquecimentos_sincronizar`: mantém a coluna `aquecimento` e passa perfil "Aquecendo" para "Pronto" ao concluir;
   - `ops.aquecer_com_padrao(tipo, ids)` para mandar vários para o aquecimento.
   - App: abas Aquecimento (quadro com colunas por dia: o card fica no primeiro dia com tarefa pendente; atrasado quando o calendário passou), A classificar (Pronto / Precisa aquecer, um a um ou em lote), Roteiros padrão (★ padrão, excluir na lista) e Quedas. A coluna Pronto mostra todos os ativos prontos e não caídos (com checklist concluído ou classificados como prontos). Saíram a tela Hoje e o botão "Iniciar aquecimento" do topo. Coluna "Aquecimento" em Ativos e selo no quadro "Uso das contas". Reserva conta quem está "Pronto".
+
+## Vendas que não chegam ao dashboard (diagnóstico de 12/11/2026)
+
+Feito só com leitura: código do dashboard (cópia local de `AysDigital/projeto-dashboard`, sem `git pull`), notas do dashboard e do financeiro e as migrations do `ops`. Nada foi alterado.
+
+**Por onde a venda entra:** um único caminho. A Mundpay chama `POST https://<painel>/api/webhook/mundpay?a=<token da área>` (rota Next.js na Vercel, projeto do dashboard), que grava em `public.purchases` com a chave `SUPABASE_SERVICE_ROLE_KEY` (upsert por `transaction_id`). Não há edge function, gatilho, pg_cron nem pg_net gravando vendas; os crons da Vercel são só `rules` e `cleanup`. A Mundpay usa o modo de autenticação `none`: não há segredo que possa ter vencido.
+
+**O que não mudou:** nenhum commit no dashboard entre 12/10 e 31/10 (na cópia local). O `ops` só lê `public.purchases` e começou em 27/10, depois da parada. O financeiro também só lê.
+
+**Pontos em que a venda pode se perder, e o que aparece nos logs da Vercel:**
+
+| Causa | Resposta da rota | Log |
+| --- | --- | --- |
+| Webhook desligado, URL errada ou eventos desmarcados na Mundpay | nenhuma chamada chega | — |
+| Token `?a=` diferente do da área, ou chave do Supabase inválida/rotacionada | 404 `area_not_found` | "[webhook] falha ao resolver área/segredo" (quando é a chave) |
+| Integração desligada no painel do dashboard | 503 `integration_disabled` | — |
+| Formato do payload mudou (valor, id, ad_id fora do esperado) | **200** `ignored: invalid_payload` (a Mundpay acha que deu certo) | "falha ao gravar compra: Payload de compra inválido…" |
+| Erro do banco (tabela, permissão, coluna) | 500 `storage_error` | "falha ao gravar compra" |
+
+**Contradição a esclarecer primeiro:** o dashboard (commit de 31/10, vendas LATAM em US$) e o financeiro (migrations 046–048 de 12/11, venda SPEI "que veio no webhook") trabalharam com vendas recentes de `public.purchases`. Pode ser que o webhook tenha voltado depois de 28/10, ou que só parte das vendas (outra conta/loja da Mundpay, outros métodos) esteja chegando. A primeira consulta de leitura pedida à usuária mostra isso por dia.
+
+**Recuperação:** como a gravação é idempotente por `transaction_id`, reenviar os webhooks pela Mundpay recupera tudo, com UTM e `ad_id`. Sem reenvio, o export CSV da Mundpay mostra o que falta (`npm run conciliar` no dashboard compara, só leitura), mas importar pelo CSV não traz o `ad_id`, então essas vendas não entrariam nas métricas por anúncio.
+
+**Próximos passos (com a usuária):** consulta por dia em `public.purchases`; logs da rota `/api/webhook/mundpay` na Vercel; configuração e histórico de entregas do webhook na Mundpay; deploys e variáveis do projeto do dashboard por volta de 25–26/10. A correção só depois da aprovação dela.

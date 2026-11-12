@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider, sair, useAuth } from './auth/AuthProvider'
-import { Layout, TELAS } from './components/Layout'
+import { Layout } from './components/Layout'
 import { ToastProvider } from './components/Toast'
 import { Botao, TelaCentral } from './components/ui'
 import { supabaseConfigurado } from './lib/supabase'
@@ -14,7 +14,6 @@ import { Modelos } from './pages/Modelos'
 import { Ofertas } from './pages/Ofertas'
 import { PaginaOferta } from './pages/oferta/PaginaOferta'
 import { ModeloChecklistOferta } from './pages/config/ModeloChecklistOferta'
-import { Placeholder } from './pages/Placeholder'
 import { Ranking } from './pages/Ranking'
 import { IrParaUltimoQuadro, Quadros } from './pages/quadro/Quadros'
 
@@ -44,9 +43,6 @@ function Portao() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        {TELAS.filter((t) => !['/quadros', '/ranking', '/ofertas', '/ativos', '/uso-contas', '/contingencia', '/modelos', '/config', '/ajuda'].includes(t.caminho)).map((t) => (
-          <Route key={t.caminho} path={t.caminho} element={<Placeholder titulo={t.titulo} />} />
-        ))}
         <Route path="/" element={<IrParaUltimoQuadro />} />
         <Route path="/quadros" element={<IrParaUltimoQuadro />} />
         <Route path="/quadros/:id" element={<Quadros />} />
