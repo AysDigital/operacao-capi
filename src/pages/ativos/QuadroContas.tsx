@@ -8,7 +8,8 @@ import { donaDe, nomeAtivo, type Inventario, type Registro, type TipoAtivo } fro
 import { mensagemErro } from '../../lib/cadastros'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
 import { ops } from '../../lib/supabase'
-import { SeloAquecimento, SeloStatusAtivo } from './campos'
+import { PAPEIS_CONTA, type PapelConta } from '../../lib/quadro'
+import { SeloAquecimento, SeloPapel, SeloStatusAtivo } from './campos'
 
 /**
  * Quadro de uso das contas, controlado à mão: arrastar a conta entre
@@ -135,6 +136,7 @@ function CartaoConta({ conta, inv, oferta, onAbrir }: { conta: Registro; inv: In
         <span className="rounded-full bg-info-soft px-2 py-0.5 font-mono text-xs font-semibold text-info">{String(conta.apelido)}</span>
         {conta.status !== 'ativa' && <SeloStatusAtivo tipo="conta" status={conta.status} />}
         <SeloAquecimento r={conta} soPendente />
+        {conta.papel && conta.papel !== 'nenhum' ? <SeloPapel papel={conta.papel} /> : null}
         {conta.uso_desde ? <span className="ml-auto text-xs text-muted">desde {formatarDiaIso(conta.uso_desde as string)}</span> : null}
       </div>
       <p className="mt-1 font-medium break-words">{String(conta.nome)}</p>
@@ -171,6 +173,7 @@ function ModalUso({
   const [ofertaId, setOfertaId] = useState((conta.uso_oferta_id as string) ?? '')
   const [desde, setDesde] = useState((conta.uso_desde as string) ?? '')
   const [nota, setNota] = useState((conta.uso_nota as string) ?? '')
+  const [papel, setPapel] = useState<PapelConta>((conta.papel as PapelConta) ?? 'nenhum')
   const [salvando, setSalvando] = useState(false)
 
   async function salvar(e: FormEvent) {
@@ -184,6 +187,7 @@ function ModalUso({
         uso_oferta_id: uso === 'parada' ? null : ofertaId || null,
         uso_desde: desde || (mudouColuna ? diaBrasilia() : null),
         uso_nota: nota.trim() || null,
+        papel,
         ...(mudouColuna ? { uso_posicao: Date.now() } : {}),
       })
       .eq('id', conta.id)
@@ -239,6 +243,15 @@ function ModalUso({
             </select>
           </Campo>
         )}
+        <Campo rotulo="Papel no manual de tráfego">
+          <select value={papel} onChange={(e) => setPapel(e.target.value as PapelConta)} className={entrada}>
+            {PAPEIS_CONTA.map((p) => (
+              <option key={p.valor} value={p.valor}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </Campo>
         <Campo rotulo="Anotação (opcional)">
           <textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={3} className={`${entrada} resize-y`} placeholder="Ex.: aquecendo com R$ 30/dia desde segunda" />
         </Campo>

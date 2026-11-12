@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { formatarCentavos, formatarCompacto } from '../lib/format'
 
-export type Tom = 'neutro' | 'bom' | 'ruim' | 'atencao' | 'info' | 'destaque'
+export type Tom = 'neutro' | 'bom' | 'ruim' | 'atencao' | 'info' | 'destaque' | 'roxo' | 'escuro'
 
 const TOM_TEXTO: Record<Tom, string> = {
   neutro: 'text-ink',
@@ -19,6 +19,8 @@ const TOM_TEXTO: Record<Tom, string> = {
   atencao: 'text-warn',
   info: 'text-info',
   destaque: 'text-accent-strong',
+  roxo: 'text-roxo',
+  escuro: 'text-ink',
 }
 
 const TOM_FUNDO: Record<Tom, string> = {
@@ -28,9 +30,11 @@ const TOM_FUNDO: Record<Tom, string> = {
   atencao: 'bg-warn-soft text-warn',
   info: 'bg-info-soft text-info',
   destaque: 'bg-accent-soft text-accent-strong',
+  roxo: 'bg-roxo-soft text-roxo',
+  escuro: 'bg-muted text-page',
 }
 
-const ICONE: Record<Tom, string> = { neutro: '•', bom: '✓', ruim: '✕', atencao: '!', info: 'i', destaque: '→' }
+const ICONE: Record<Tom, string> = { neutro: '•', bom: '✓', ruim: '✕', atencao: '!', info: 'i', destaque: '→', roxo: '↗', escuro: '⏸' }
 
 /** Ícone de informação desenhado (não depende da fonte). */
 export function IconeInfo({ className = '' }: { className?: string }) {

@@ -25,6 +25,7 @@ function valorInicial(c: Campo, r: Registro | null): string | boolean {
   if (v == null) {
     if (c.chave === 'status') return c.opcoes?.[0]?.valor ?? ''
     if (c.chave === 'titular') return 'PJ'
+    if (c.chave === 'papel') return 'nenhum'
     return ''
   }
   return String(v)

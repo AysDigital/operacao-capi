@@ -5,6 +5,7 @@ import { PilulaCor } from '../../components/ds'
 import type { Etiqueta } from '../../lib/cadastros'
 import { prazoCurto, situacaoPrazo } from '../../lib/card'
 import { formatarData } from '../../lib/format'
+import { corFase, NOME_FASE, roasTexto, textoFase, type FaseVeiculacao } from '../../lib/fases'
 import { CLASSES, resumoCurto, type Classe } from '../../lib/ranking'
 import {
   diasDesde,
@@ -27,6 +28,8 @@ export type Contexto = {
   agora: number
   /** números e classificação de cada card (período de avaliação da oferta) */
   metricas: MetricasCards
+  /** fase do manual de cada veiculação, por card */
+  fases: Map<string, FaseVeiculacao[]>
   mostrarMetricas: boolean
 }
 
@@ -34,6 +37,8 @@ const COR_CLASSE: Partial<Record<Classe, string>> = {
   vencedor: 'bg-good-soft text-good',
   promissor: 'bg-info-soft text-info',
   perdedor: 'bg-bad-soft text-bad',
+  mid_spender: 'bg-roxo-soft text-roxo',
+  no_spend: 'bg-muted text-page',
 }
 
 /** Selo da classificação automática ("Em teste" e "Sem dados" não aparecem). */
@@ -97,6 +102,31 @@ export function PilulasContas({
   )
 }
 
+/** Uma pílula por veiculação rodando: "D2 · Validação" ou, depois da validação, "Avança 1,8x". */
+function PilulasFase({ fases, contas }: { fases: FaseVeiculacao[] | undefined; contas: Map<string, ContaQuadro> }) {
+  const lista = (fases ?? []).filter((f) => f.status === 'rodando')
+  if (!lista.length) return null
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {lista.map((f) => {
+        const conta = contas.get(f.conta_id)
+        const detalhe = f.veredito
+          ? `Validação fechada: ROAS ${roasTexto(f.roas_validacao)} nos primeiros dias. Hoje é D${f.dia} (${NOME_FASE[f.fase]}).`
+          : `D${f.dia} da ${NOME_FASE[f.fase]}`
+        return (
+          <span
+            key={f.veiculacao_id}
+            title={`${conta?.apelido ?? '?'}${conta ? ` · ${conta.nome}` : ''}: ${detalhe}${f.no_spend ? ' · sem gastar nos últimos 2 dias' : ''}`}
+            className={`inline-flex items-center rounded px-1 py-px text-[11px] leading-4 font-medium tabular-nums ${corFase(f)}`}
+          >
+            {textoFase(f)}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
 function Icone({ children }: { children: ReactNode }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
@@ -144,6 +174,7 @@ export const CartaoFrente = memo(function CartaoFrente({
       <p className={`text-sm leading-snug font-medium break-words ${card.tipo === 'ad' ? 'font-mono text-[13px]' : ''}`}>{card.nome}</p>
 
       <PilulasContas veiculacoes={card.veiculacoes} contas={ctx.contas} className="mt-1.5" />
+      <PilulasFase fases={ctx.fases.get(card.id)} contas={ctx.contas} />
 
       {ctx.mostrarMetricas && rodando && numeros && (
         <p className="mt-1 text-[11px] text-muted tabular-nums" title="Gasto · ROAS · vendas no período de avaliação da oferta, somando todas as contas">

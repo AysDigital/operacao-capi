@@ -42,6 +42,12 @@ export type Oferta = {
   roas_minimo: number | null
   gasto_minimo: number | null
   periodo_avaliacao: 7 | 14 | 30
+  /** manual de tráfego (etapa 13) */
+  roas_avanca?: number
+  roas_monitora?: number
+  dias_validacao?: number
+  gasto_nospend?: number
+  escalando?: boolean
 }
 
 export const PERIODOS_AVALIACAO = [7, 14, 30] as const

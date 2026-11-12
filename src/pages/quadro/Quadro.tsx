@@ -19,6 +19,7 @@ import { useToast } from '../../components/Toast'
 import { mensagemErro, type Etiqueta } from '../../lib/cadastros'
 import { EVENTO_METRICAS } from '../../lib/metricas'
 import type { Modelo } from '../../lib/modelos'
+import { fasesDosCards, type FaseVeiculacao } from '../../lib/fases'
 import { metricasDosCards } from '../../lib/ranking'
 import {
   buscarCards,
@@ -95,6 +96,7 @@ export function Quadro({
   const [lote, setLote] = useState<'veicular' | 'ids' | null>(null)
   const [salvarModelo, setSalvarModelo] = useState<CardQuadro | null>(null)
   const [metricas, setMetricas] = useState<MetricasCards>(() => new Map())
+  const [fases, setFases] = useState<Map<string, FaseVeiculacao[]>>(() => new Map())
   const [mostrarMetricas, setMostrarMetricas] = useState<boolean>(() => lerLocal('quadro_metricas', true))
   // durante o arrasto: a ordem provisória (ids por lista) e o card arrastado
   const [arrasto, setArrasto] = useState<Record<string, string[]> | null>(null)
@@ -153,11 +155,12 @@ export function Quadro({
     }
   }, [carregar, ofertaId])
 
-  // Números e classificação: ao abrir, quando muda algum ID de anúncio, depois de cada busca na Meta e a cada 10 minutos.
+  // Números, classificação e fases: ao abrir, quando muda algum ID de anúncio ou status de veiculação,
+  // depois de cada busca na Meta e a cada 10 minutos.
   const idsAnuncios = useMemo(
     () =>
       (cards ?? [])
-        .flatMap((c) => c.veiculacoes.flatMap(idsDaVeiculacao))
+        .flatMap((c) => c.veiculacoes.flatMap((v) => [...idsDaVeiculacao(v), `${c.id}:${v.conta_id}:${v.status}`]))
         .filter(Boolean)
         .sort()
         .join(','),
@@ -165,11 +168,16 @@ export function Quadro({
   )
   useEffect(() => {
     let vivo = true
-    const buscar = () =>
+    const buscar = () => {
       metricasDosCards(ofertaId).then(
         (m) => vivo && setMetricas(m),
         (e: Error) => console.warn('Métricas do quadro:', e.message),
       )
+      fasesDosCards(ofertaId).then(
+        (f) => vivo && setFases(f),
+        (e: Error) => console.warn('Fases do quadro:', e.message),
+      )
+    }
     buscar()
     const t = setInterval(buscar, 10 * 60_000)
     window.addEventListener(EVENTO_METRICAS, buscar)
@@ -215,9 +223,10 @@ export function Quadro({
       mostrarOferta: ofertaId === null,
       agora,
       metricas,
+      fases,
       mostrarMetricas,
     }),
-    [ofertas, contas, etiquetas, ofertaId, agora, metricas, mostrarMetricas],
+    [ofertas, contas, etiquetas, ofertaId, agora, metricas, fases, mostrarMetricas],
   )
 
   const ofertaFixa = ofertaId ? (ofertas.find((o) => o.id === ofertaId) ?? null) : null

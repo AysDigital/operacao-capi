@@ -44,6 +44,8 @@
   --c-series-2: #b07a3e;    /* pelagem */
   --c-series-3: #6a5acd;    /* só em gráficos (a marca não tem 3ª cor fora de status) */
   --c-series-4: #d55181;    /* só em gráficos: meta otimista */
+  --c-roxo: #6a4fc4;        /* só o selo Mid-spender */
+  --c-roxo-soft: #efeafd;
 }
 .dark {
   --c-page: #26251f;        /* grafite */
@@ -68,6 +70,8 @@
   --c-series-2: #ad773a;
   --c-series-3: #8c7fe0;
   --c-series-4: #d55181;
+  --c-roxo: #b8a6f5;
+  --c-roxo-soft: #2f2847;
 }
 
 @theme inline {
@@ -96,6 +100,8 @@
   --color-series-2: var(--c-series-2);
   --color-series-3: var(--c-series-3);
   --color-series-4: var(--c-series-4);
+  --color-roxo: var(--c-roxo);
+  --color-roxo-soft: var(--c-roxo-soft);
 
   --radius-card: 0.875rem;
   --radius-control: 0.625rem;

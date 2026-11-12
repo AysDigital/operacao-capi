@@ -117,7 +117,8 @@ const TOPICOS: Topico[] = [
         'Barra de filtros',
         'Busca por nome, etiqueta, tipo, status da veiculação + conta (ex.: "Rejeitado na AC01NIN"), classificação, "Só com troféu" e "Mostrar arquivados".',
         '"Métricas" mostra ou esconde a linha "R$ gasto · ROAS · vendas" nos cards rodando.',
-        'Selos automáticos: 🔥 Vencedor, ✨ Promissor e ⚠️ Perdedor, pelas regras de performance da oferta.',
+        'Selos automáticos: 🔥 Vencedor, ↗ Mid-spender, ✨ Promissor, ⚠️ Perdedor e ⏸ No-spend, pelas regras de performance da oferta.',
+        'Pílula de fase em cada conta rodando: "D2 · Validação" e, depois da validação, "Avança", "Monitorar" ou "Falhou" com o ROAS daqueles dias. Passe o mouse para ver a conta.',
         '"Arquivados" abre o painel com os cards e listas arquivados, cada um com "Restaurar".',
         '"Veicular em lote" e "Preencher IDs da Meta": veja o passo a passo da remessa.',
       ),
@@ -208,13 +209,47 @@ const TOPICOS: Topico[] = [
       ),
       i(
         'Classificação',
-        'Vencedor: gastou o mínimo e bateu o ROAS mínimo ou o CPA alvo. Promissor: tem vendas mas ainda não gastou o mínimo. Perdedor: gastou 2× o CPA alvo sem venda. Em teste / Sem dados: o resto.',
+        'Vencedor: gastou o mínimo e bateu o ROAS mínimo ou o CPA alvo. Mid-spender: ROAS bom (ou CPA no alvo) com venda, mas gastando abaixo da mediana dos ads rodando da oferta. Promissor: tem vendas mas ainda não gastou o mínimo. Perdedor: gastou 2× o CPA alvo sem venda. No-spend: rodando há 2+ dias gastando menos que o limite por dia. Em teste / Sem dados: o resto.',
+        'Filtro "↗ Mid-spenders ainda não enviados": os mid-spenders que ainda não têm veiculação numa conta No-Bid. O botão "↗ Mandar para No-Bid" aparece na linha deles.',
         'As regras ficam em cada oferta (Ofertas → editar → Regras de performance). Sem regra, ninguém é classificado.',
       ),
       i(
         'Alertas no topo',
         'Gasto nas últimas 24 h sem nenhuma venda registrada (pode ser o webhook de vendas parado).',
         'Falha ao buscar as métricas na Meta, com o motivo.',
+      ),
+    ],
+  },
+  {
+    id: 'manual',
+    titulo: 'Manual de tráfego (Bidcap)',
+    link: { para: '/ranking', nome: 'Abrir Ranking' },
+    resumo: 'Fases de cada anúncio, veredito da validação, no-spend, mid-spender e No-Bid.',
+    itens: [
+      i(
+        'Fases',
+        'Cada veiculação conta os dias desde a primeira vez que ficou "Rodando" (D1 = esse dia). Validação: D1 até o último dia de validação da oferta (padrão 3). Depois: Pré-escala, ou Escala se a oferta está marcada como "em escala".',
+        'No fim da validação, o ROAS daqueles dias (só daquela conta) decide: ≥ ROAS para avançar (padrão 1,3) = ✓ Avança; ≥ ROAS para monitorar (padrão 0,8) = ◐ Monitorar; abaixo, ou sem gasto = ✕ Falhou.',
+        'Aparece na frente do card (uma pílula por conta rodando) e no card, em "Veiculação por conta", com o dia, a fase, o veredito e o ROAS da validação.',
+      ),
+      i(
+        'Linhas vermelhas',
+        'Ao mudar para "Pausado" uma veiculação em Validação ou Pré-escala, o app pergunta se você quer mesmo pausar. Não bloqueia: é só o lembrete do manual.',
+      ),
+      i(
+        'No-spend e mid-spender',
+        '⏸ No-spend: rodando há 2+ dias e gastando menos que o limite por dia da oferta (padrão R$ 5) ontem e anteontem.',
+        '↗ Mid-spender: converte bem (ROAS ≥ mínimo ou CPA ≤ alvo, com pelo menos 1 venda), mas gasta abaixo da mediana dos ads rodando da oferta. Só conta em contas "Principal (Bidcap)" ou sem papel.',
+      ),
+      passos(
+        'Mandar um mid-spender para No-Bid',
+        'Marque a conta secundária como "Secundária (No-Bid)" em Ativos → Contas (campo Papel) ou no quadro Uso das contas.',
+        'No card (em Veiculação por conta) ou no Ranking, clique em "↗ Mandar para No-Bid" e escolha a conta.',
+        'O app cria a veiculação nessa conta como "Não subido", com a nota "Mid-spender vindo da {conta}", e registra no histórico. A veiculação original não muda.',
+      ),
+      i(
+        'Onde configurar',
+        'Ofertas → editar → Regras de performance → Manual de tráfego: ROAS para avançar, ROAS para monitorar, dias de validação, limite do no-spend e "Oferta em escala".',
       ),
     ],
   },
@@ -365,7 +400,8 @@ const TOPICOS: Topico[] = [
         'Ads e cards',
         'AD = número do anúncio (a ideia). H = hook (abertura). M = variação do hook. Família = todos os cards com o mesmo AD na oferta.',
         'Veiculação = o card numa conta de anúncio (com status e ID do anúncio na Meta). Um card pode ter várias.',
-        'Troféu = marcação manual de vencedor. Selo 🔥/✨/⚠️ = classificação automática pelas regras da oferta.',
+        'Troféu = marcação manual de vencedor. Selo 🔥/↗/✨/⚠️/⏸ = classificação automática pelas regras da oferta.',
+        'Bidcap = campanha com limite de lance (conta principal). No-Bid = sem limite de lance (conta secundária, para os mid-spenders).',
       ),
       i(
         'Números',

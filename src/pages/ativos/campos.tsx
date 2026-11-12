@@ -19,6 +19,7 @@ import {
 } from '../../lib/ativos'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
 import { SITUACAO_AQUECIMENTO, situacaoDe } from '../../lib/contingencia'
+import { PAPEIS_CONTA } from '../../lib/quadro'
 
 /** Tipos de campo do formulário. */
 export type TipoCampo = 'texto' | 'area' | 'data' | 'dinheiro' | 'idMeta' | 'opcoes' | 'sim_nao' | 'fornecedor' | 'cartao' | 'sigla' | 'moeda' | 'ultimos4' | 'dominio'
@@ -82,6 +83,15 @@ export const CAMPOS: Record<TipoAtivo, Campo[]> = {
     { chave: 'moeda', rotulo: 'Moeda', tipo: 'moeda', meia: true, placeholder: 'USD' },
     { chave: 'limite_gasto', rotulo: 'Limite de gasto', tipo: 'dinheiro', meia: true, placeholder: '0,00' },
     { chave: 'cartao_id', rotulo: 'Cartão', tipo: 'cartao' },
+    {
+      chave: 'papel',
+      rotulo: 'Papel no manual',
+      tipo: 'opcoes',
+      obrigatorio: true,
+      meia: true,
+      opcoes: PAPEIS_CONTA,
+      dica: 'Principal (Bidcap): onde os ads rodam com limite de lance. Secundária (No-Bid): recebe os mid-spenders, sem limite de lance.',
+    },
   ],
   pagina: [
     { chave: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true },
@@ -133,6 +143,13 @@ export function SeloStatusAtivo({ tipo, status }: { tipo: TipoAtivo; status: unk
       {s.nome}
     </Selo>
   )
+}
+
+/** Papel da conta no manual de tráfego (só aparece quando tem papel). */
+export function SeloPapel({ papel }: { papel: unknown }) {
+  if (papel === 'principal_bidcap') return <Selo tom="info">Bidcap</Selo>
+  if (papel === 'secundaria_nobid') return <Selo tom="roxo">No-Bid</Selo>
+  return <span className="text-muted">—</span>
 }
 
 /** Situação na Contingência (perfis, BMs, contas e páginas). */
@@ -300,6 +317,7 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
         aquecimento,
         acesso,
         idMeta('meta_ad_account_id'),
+        { rotulo: 'Papel', valor: (r) => <SeloPapel papel={r.papel} /> },
         { rotulo: 'Limite', classe: num, valor: (r) => (r.limite_gasto == null ? '—' : dinheiro(r.limite_gasto, String(r.moeda ?? 'BRL'))) },
         { rotulo: 'Cartão', valor: (r) => (r.cartao_id ? nomeAtivo(inv, 'cartao', r.cartao_id as string) : '—') },
       ]

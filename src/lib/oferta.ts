@@ -12,7 +12,7 @@ export type OfertaCompleta = Oferta & { anotacoes: string | null }
 export async function buscarOferta(id: string): Promise<OfertaCompleta | null> {
   const { data, error } = await ops()
     .from('ofertas')
-    .select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, anotacoes')
+    .select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, roas_avanca, roas_monitora, dias_validacao, gasto_nospend, escalando, anotacoes')
     .eq('id', id)
     .maybeSingle()
   if (error) throw new Error(error.message)

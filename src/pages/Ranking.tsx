@@ -12,6 +12,7 @@ import { ops } from '../lib/supabase'
 import { AvisosDados } from './quadro/AvisosDados'
 import { PilulasContas } from './quadro/Cartao'
 import { ModalGerarVariacoes } from './quadro/card/Versoes'
+import { MandarNoBid } from './quadro/MandarNoBid'
 import { buscarBase, type Base } from './quadro/Quadros'
 
 const PERIODOS = [
@@ -21,7 +22,7 @@ const PERIODOS = [
   { valor: 0, nome: 'Tudo' },
 ]
 
-type Prefs = { oferta: string; dias: number; nivel: Nivel; classe: Classe | ''; ordem: Coluna; desc: boolean }
+type Prefs = { oferta: string; dias: number; nivel: Nivel; classe: Classe | '' | 'mid_pendente'; ordem: Coluna; desc: boolean }
 const PREFS_PADRAO: Prefs = { oferta: '', dias: 7, nivel: 'anuncio', classe: '', ordem: 'gasto', desc: true }
 
 type Coluna = 'nome' | 'classe' | 'gasto' | 'faturamento' | 'roas' | 'vendas' | 'cpa' | 'ctr' | 'hook'
@@ -36,7 +37,7 @@ type Linha = LinhaRanking & {
   ind: ReturnType<typeof indicadores>
 }
 
-const ORDEM_CLASSE: Record<Classe, number> = { vencedor: 0, promissor: 1, em_teste: 2, perdedor: 3, sem_dados: 4 }
+const ORDEM_CLASSE: Record<Classe, number> = { vencedor: 0, mid_spender: 1, promissor: 2, em_teste: 3, no_spend: 4, perdedor: 5, sem_dados: 6 }
 
 const VALOR: Record<Coluna, (l: Linha) => number | string | null> = {
   nome: (l) => l.nome,
@@ -126,7 +127,9 @@ export function Ranking() {
       }
     })
     const termo = busca.trim().toLowerCase()
-    const filtradas = r.filter((l) => (!prefs.classe || l.classe === prefs.classe) && (!termo || l.nome.toLowerCase().includes(termo)))
+    const passaClasse = (l: Linha) =>
+      !prefs.classe || (prefs.classe === 'mid_pendente' ? l.classe === 'mid_spender' && !l.noBid : l.classe === prefs.classe)
+    const filtradas = r.filter((l) => passaClasse(l) && (!termo || l.nome.toLowerCase().includes(termo)))
     const valor = VALOR[prefs.ordem]
     return filtradas.sort((a, b) => {
       const va = valor(a)
@@ -197,13 +200,14 @@ export function Ranking() {
             </button>
           ))}
         </div>
-        <select value={prefs.classe} onChange={(e) => setPrefs({ classe: e.target.value as Classe | '' })} aria-label="Classificação" className={caixa}>
+        <select value={prefs.classe} onChange={(e) => setPrefs({ classe: e.target.value as Prefs['classe'] })} aria-label="Classificação" className={caixa}>
           <option value="">Classificação</option>
           {Object.entries(CLASSES).map(([valor, c]) => (
             <option key={valor} value={valor}>
               {c.icone} {c.nome}
             </option>
           ))}
+          <option value="mid_pendente">↗ Mid-spenders ainda não enviados</option>
         </select>
         <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome" aria-label="Buscar por nome" className={`${caixa} w-44`} />
         {linhas && (
@@ -279,6 +283,7 @@ export function Ranking() {
                         <span aria-hidden>{c.icone}</span>
                         {c.nome}
                       </Selo>
+                      {l.classe === 'mid_spender' && l.noBid && <span className="ml-1 text-xs text-muted">já no No-Bid</span>}
                     </td>
                     <td className={tabela.num}>{brl(l.gasto)}</td>
                     <td className={tabela.num}>{brl(l.faturamento)}</td>
@@ -301,6 +306,11 @@ export function Ranking() {
                           onAbrir={() => navegar(`/quadros/${l.card!.oferta_id}?card=${l.card!.id}`)}
                           onVariacoes={() => setVariacoesDe(l.card!.id)}
                           onTrofeu={() => alternarTrofeu(l.card!)}
+                          extra={
+                            l.classe === 'mid_spender' && base ? (
+                              <MandarNoBid cardId={l.card.id} contas={base.contas} jaEm={l.card.veiculacoes.map((v) => v.conta_id)} onFeito={carregar} />
+                            ) : null
+                          }
                         />
                       ) : (
                         <button
@@ -354,10 +364,23 @@ export function Ranking() {
   )
 }
 
-function AcoesCard({ card, onAbrir, onVariacoes, onTrofeu }: { card: CardQuadro; onAbrir: () => void; onVariacoes: () => void; onTrofeu: () => void }) {
+function AcoesCard({
+  card,
+  onAbrir,
+  onVariacoes,
+  onTrofeu,
+  extra,
+}: {
+  card: CardQuadro
+  onAbrir: () => void
+  onVariacoes: () => void
+  onTrofeu: () => void
+  extra?: ReactNode
+}) {
   const botao = 'rounded-md px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-ink'
   return (
     <div className="inline-flex items-center gap-0.5">
+      {extra}
       <button onClick={onAbrir} className={botao}>
         Abrir
       </button>

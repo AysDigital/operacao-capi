@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Dica, Popover } from '../../../components/ds'
+import { Aviso, Dica, Popover } from '../../../components/ds'
 import { useToast } from '../../../components/Toast'
 import { CATEGORIAS_REJEICAO, extrairIdAnuncio, type CardDetalhe, type VeiculacaoDetalhe } from '../../../lib/card'
+import { buscarFases, corFase, NOME_FASE, naoPausar, roasTexto, textoFase, VEREDITOS, type FaseVeiculacao } from '../../../lib/fases'
 import { listarAnunciosDaConta, type AnuncioMeta } from '../../../lib/metricas'
+import { buscarRanking, type Classe } from '../../../lib/ranking'
+import { MandarNoBid } from '../MandarNoBid'
 import { STATUS_VEICULACAO, type ContaQuadro, type StatusVeiculacao } from '../../../lib/quadro'
 import { ops } from '../../../lib/supabase'
 import { botaoPequeno, campoPequeno, ICONES, TituloSecao, type Atualizar, type Salvar } from './comum'
@@ -48,6 +51,27 @@ export function Veiculacoes({
   )
   const livres = contas.filter((c) => c.ativa && !card.veiculacoes.some((v) => v.conta_id === c.id))
 
+  // Fase do manual por veiculação e a classificação do card (para o botão No-Bid)
+  const [fases, setFases] = useState<FaseVeiculacao[]>([])
+  const [classe, setClasse] = useState<Classe | null>(null)
+  const [versao, setVersao] = useState(0)
+  const chave = card.veiculacoes.map((v) => `${v.id}:${v.status}:${v.meta_ad_id}`).join(',')
+  useEffect(() => {
+    let vivo = true
+    buscarFases(null, card.id).then(
+      (f) => vivo && setFases(f),
+      () => vivo && setFases([]),
+    )
+    if (card.tipo === 'ad')
+      buscarRanking(card.oferta_id, null, 'anuncio').then(
+        (ls) => vivo && setClasse(ls.find((l) => l.cards.includes(card.id))?.classe ?? null),
+        () => vivo && setClasse(null),
+      )
+    return () => {
+      vivo = false
+    }
+  }, [card.id, card.oferta_id, card.tipo, chave, versao])
+
   return (
     <section>
       <TituloSecao icone={ICONES.veiculacao}>Veiculação por conta</TituloSecao>
@@ -56,9 +80,33 @@ export function Veiculacoes({
 
       <div className="space-y-2">
         {linhas.map((v) => (
-          <LinhaVeiculacao key={v.id} v={v} conta={porConta.get(v.conta_id)} card={card} salvar={salvar} atualizar={atualizar} />
+          <LinhaVeiculacao
+            key={v.id}
+            v={v}
+            conta={porConta.get(v.conta_id)}
+            card={card}
+            fase={fases.find((f) => f.veiculacao_id === v.id)}
+            salvar={salvar}
+            atualizar={atualizar}
+          />
         ))}
       </div>
+
+      {classe === 'mid_spender' && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-control bg-roxo-soft/60 px-3 py-2 text-sm">
+          <span className="text-roxo">↗ Mid-spender: converte bem, mas gasta pouco no Bidcap.</span>
+          <MandarNoBid
+            cardId={card.id}
+            contas={contas}
+            jaEm={card.veiculacoes.map((v) => v.conta_id)}
+            onFeito={() => {
+              setVersao((n) => n + 1)
+              salvar(Promise.resolve({ error: null }))
+            }}
+            classe="ml-auto rounded-control bg-roxo px-2.5 py-1 text-xs font-medium text-white hover:brightness-110"
+          />
+        </div>
+      )}
 
       <Popover
         titulo="Subir em outra conta"
@@ -102,16 +150,19 @@ function LinhaVeiculacao({
   v,
   conta,
   card,
+  fase,
   salvar,
   atualizar,
 }: {
   v: VeiculacaoDetalhe
   conta: ContaQuadro | undefined
   card: CardDetalhe
+  fase: FaseVeiculacao | undefined
   salvar: Salvar
   atualizar: Atualizar
 }) {
   const toast = useToast()
+  const [confirmarPausa, setConfirmarPausa] = useState(false)
   const [idAnuncio, setIdAnuncio] = useState(v.meta_ad_id ?? '')
   const [motivo, setMotivo] = useState(v.motivo_rejeicao ?? '')
   const [confirmarRemover, setConfirmarRemover] = useState(false)
@@ -178,10 +229,68 @@ function LinhaVeiculacao({
         )}
       </div>
 
+      {(fase || v.origem) && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          {fase && (
+            <>
+              <span className={`rounded px-1.5 py-0.5 font-medium tabular-nums ${corFase(fase)}`}>{textoFase(fase)}</span>
+              <span className="text-muted tabular-nums">
+                D{fase.dia} · {NOME_FASE[fase.fase]}
+                {fase.veredito ? (
+                  <>
+                    {' '}
+                    · validação: {VEREDITOS[fase.veredito].icone} {VEREDITOS[fase.veredito].nome}, ROAS {roasTexto(fase.roas_validacao)} (gasto R$ {Math.round(fase.gasto_validacao).toLocaleString('pt-BR')})
+                  </>
+                ) : (
+                  fase.fase === 'validacao' && fase.gasto_validacao > 0 && <> · ROAS até agora {roasTexto(fase.roas_validacao)}</>
+                )}
+              </span>
+              {fase.no_spend && <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-page">⏸ No-spend</span>}
+            </>
+          )}
+          {v.origem && <span className="text-roxo">↗ {v.origem}</span>}
+        </div>
+      )}
+
+      {confirmarPausa && fase && (
+        <div className="mt-2">
+          <Aviso
+            tom="atencao"
+            acao={
+              <span className="flex shrink-0 gap-2">
+                <button
+                  onClick={() => {
+                    setConfirmarPausa(false)
+                    mudar({ status: 'pausado' })
+                  }}
+                  className="rounded-control bg-warn px-2 py-0.5 text-xs font-medium text-page"
+                >
+                  Pausar mesmo assim
+                </button>
+                <button onClick={() => setConfirmarPausa(false)} className="text-xs text-muted hover:text-ink">
+                  Cancelar
+                </button>
+              </span>
+            }
+          >
+            Este anúncio está em {NOME_FASE[fase.fase]} (D{fase.dia}). O manual pede para não pausar nesta fase. Pausar mesmo assim?
+          </Aviso>
+        </div>
+      )}
+
       <div className="mt-2 grid gap-2 sm:grid-cols-[10rem_1fr_9.5rem]">
         <label className="text-xs text-muted">
           Status
-          <select value={v.status} onChange={(e) => mudar({ status: e.target.value as StatusVeiculacao })} className={`${campoPequeno} mt-0.5 text-ink`}>
+          <select
+            value={v.status}
+            onChange={(e) => {
+              const novo = e.target.value as StatusVeiculacao
+              // linha vermelha do manual: não pausar em validação ou pré-escala (só avisa)
+              if (novo === 'pausado' && naoPausar(fase)) return setConfirmarPausa(true)
+              mudar({ status: novo })
+            }}
+            className={`${campoPequeno} mt-0.5 text-ink`}
+          >
             {Object.entries(STATUS_VEICULACAO).map(([valor, s]) => (
               <option key={valor} value={valor}>
                 {s.icone} {s.nome}

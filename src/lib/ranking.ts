@@ -7,12 +7,14 @@ import { ops } from './supabase'
  * Classificação automática dos cards Ad e ranking. A regra fica no banco
  * (ops.classificar, chamada por ops.ranking), para o quadro e o ranking concordarem.
  */
-export type Classe = 'vencedor' | 'promissor' | 'perdedor' | 'em_teste' | 'sem_dados'
+export type Classe = 'vencedor' | 'mid_spender' | 'promissor' | 'perdedor' | 'no_spend' | 'em_teste' | 'sem_dados'
 
 export const CLASSES: Record<Classe, { nome: string; icone: string; tom: Tom; selo: boolean }> = {
   vencedor: { nome: 'Vencedor', icone: '🔥', tom: 'bom', selo: true },
+  mid_spender: { nome: 'Mid-spender', icone: '↗', tom: 'roxo', selo: true },
   promissor: { nome: 'Promissor', icone: '✨', tom: 'info', selo: true },
   perdedor: { nome: 'Perdedor', icone: '⚠️', tom: 'ruim', selo: true },
+  no_spend: { nome: 'No-spend', icone: '⏸', tom: 'escuro', selo: true },
   em_teste: { nome: 'Em teste', icone: '◐', tom: 'neutro', selo: false },
   sem_dados: { nome: 'Sem dados', icone: '○', tom: 'neutro', selo: false },
 }
@@ -20,7 +22,9 @@ export const CLASSES: Record<Classe, { nome: string; icone: string; tom: Tom; se
 export const AJUDA_CLASSES = (
   'Calculada pelas regras de performance da oferta (Ofertas → editar), no período de avaliação dela, somando todas as contas. ' +
   'Vencedor: gasto mínimo atingido e ROAS ≥ mínimo (ou CPA ≤ alvo). Promissor: tem vendas, mas ainda não gastou o mínimo. ' +
-  'Perdedor: gastou 2× o CPA alvo sem venda. Em teste: gastando, sem dados suficientes. Sem dados: sem gasto. ' +
+  'Mid-spender: ROAS ≥ mínimo (ou CPA ≤ alvo), com venda, mas gastando abaixo da mediana dos ads rodando da oferta (contas Bidcap ou sem papel): candidato a conta No-Bid. ' +
+  'Perdedor: gastou 2× o CPA alvo sem venda. No-spend: rodando há 2+ dias e gastando menos que o limite da oferta por dia (ontem e anteontem). ' +
+  'Em teste: gastando, sem dados suficientes. Sem dados: sem gasto. ' +
   'O troféu é separado: é o vencedor confirmado por vocês.'
 )
 
@@ -39,6 +43,8 @@ export type LinhaRanking = Numeros & {
   varNum: number | null
   cards: string[]
   classe: Classe
+  /** já tem veiculação numa conta No-Bid */
+  noBid: boolean
 }
 
 type LinhaBanco = {
@@ -61,6 +67,7 @@ type LinhaBanco = {
   reembolsos: number
   valor_reembolsado: number
   classificacao: Classe
+  no_bid: boolean
 }
 
 /** `dias`: null = período de avaliação de cada oferta; 0 = tudo. */
@@ -74,6 +81,7 @@ export async function buscarRanking(ofertaId: string | null, dias: number | null
     varNum: l.var_num,
     cards: l.cards,
     classe: l.classificacao,
+    noBid: l.no_bid,
     gasto: Number(l.gasto),
     impressoes: Number(l.impressoes),
     cliques: Number(l.cliques),

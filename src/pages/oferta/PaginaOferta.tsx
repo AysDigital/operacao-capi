@@ -27,7 +27,7 @@ async function buscarBase(): Promise<Base> {
   const [listas, ofertas, contas, membros] = await Promise.all([
     ops().from('listas').select('id, nome, ordem, cor, arquivada').order('ordem'),
     ops().from('ofertas').select('id, nome, codigo, idioma, cor, status').order('nome'),
-    ops().from('contas_anuncio').select('id, apelido, nome, bm_nome, ativa, meta_ad_account_id'),
+    ops().from('contas_anuncio').select('id, apelido, nome, bm_nome, ativa, meta_ad_account_id, papel'),
     ops().from('membros').select('user_id, nome'),
   ])
   const erro = listas.error ?? ofertas.error ?? contas.error ?? membros.error

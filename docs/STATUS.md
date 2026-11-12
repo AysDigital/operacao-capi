@@ -3,7 +3,7 @@
 ## Situação atual (12/11/2026)
 
 - **No ar:** https://ops.capimarketing.online (GitHub `AysDigital/operacao-capi`, Vercel `operacao-capi`).
-- **Banco:** migrations 001 a 032 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (rodada em 10/11/2026); 021: importação do inventário de ativos (rodada em 10/11/2026: 10 perfis, 13 BMs, 35 contas, 21 páginas, 51 pixels, 308 acessos); 022: tira o perfil "Grupo Capi" (rodada em 10/11/2026: 9 perfis, 304 acessos); 023: pessoas "inativas" das BMs contam como acesso (rodada em 10/11/2026: 10 perfis, 312 acessos); 024: Nicoly na BM Boulevard (rodada em 10/11/2026: 313 acessos); 025: apaga ativos antigos e completa IDs pela planilha (rodada em 10/11/2026: 16 páginas, 15 pixels, todas as contas e BMs com ID). Onde a planilha e o documento discordam, vale o documento (decisão da usuária); 026: status dos pixels, fornecedor dos perfis e apelidos AC das contas (rodada em 10/11/2026: 35 contas com apelido novo); 027: só os pixels GE e Pontos de Comando ficam (rodada em 10/11/2026); 028: quadro de uso das contas (rodada em 10/11/2026); 029: Contingência (etapa 12, rodada em 10/11/2026: 78 linhas do histórico marcadas como importação, 11 reais); 030: anexos Script e AD Finalizado em todos os cards de PC e GE (rodada em 12/11/2026: 161 cards, todos com os dois); 031: vários IDs da Meta por veiculação (rodada em 12/11/2026: 83 IDs principais, 0 extras); 032: contingência padrão (rodada em 12/11/2026: 4 roteiros padrão; a classificar: 8 perfis, 13 BMs, 35 contas, 16 páginas). **Próxima: 033.**
+- **Banco:** migrations 001 a 033 rodadas pela usuária (007: 21 contas importadas do dashboard; 009: dados de teste temporários, apagados pela 010). 011–013: cards importados do Trello e ajustes de 04/11; 014: rejeição vira comentário; 015: Standby e Criação do Trello; 016: modelos de card; 017: módulo de ofertas; 018: correção de permissão do checklist da oferta; 019: ativos (etapa 11, rodada em 09/11/2026: 27 contas, 13 BMs criadas do campo BM, 27 contas com dona); 020: queda manual (rodada em 10/11/2026); 021: importação do inventário de ativos (rodada em 10/11/2026: 10 perfis, 13 BMs, 35 contas, 21 páginas, 51 pixels, 308 acessos); 022: tira o perfil "Grupo Capi" (rodada em 10/11/2026: 9 perfis, 304 acessos); 023: pessoas "inativas" das BMs contam como acesso (rodada em 10/11/2026: 10 perfis, 312 acessos); 024: Nicoly na BM Boulevard (rodada em 10/11/2026: 313 acessos); 025: apaga ativos antigos e completa IDs pela planilha (rodada em 10/11/2026: 16 páginas, 15 pixels, todas as contas e BMs com ID). Onde a planilha e o documento discordam, vale o documento (decisão da usuária); 026: status dos pixels, fornecedor dos perfis e apelidos AC das contas (rodada em 10/11/2026: 35 contas com apelido novo); 027: só os pixels GE e Pontos de Comando ficam (rodada em 10/11/2026); 028: quadro de uso das contas (rodada em 10/11/2026); 029: Contingência (etapa 12, rodada em 10/11/2026: 78 linhas do histórico marcadas como importação, 11 reais); 030: anexos Script e AD Finalizado em todos os cards de PC e GE (rodada em 12/11/2026: 161 cards, todos com os dois); 031: vários IDs da Meta por veiculação (rodada em 12/11/2026: 83 IDs principais, 0 extras); 032: contingência padrão (rodada em 12/11/2026: 4 roteiros padrão; a classificar: 8 perfis, 13 BMs, 35 contas, 16 páginas); 033: fases do manual de tráfego (etapa 13, rodada em 12/11/2026: 29 veiculações rodando com data de início). **Próxima: 034.**
 - **Fora do `ops` (autorizado, ver CLAUDE.md):** tempo real em `ops.cards` e `ops.veiculacoes`; bucket privado `operacao` no Storage; leitura do dashboard só agregada (contas: número e nome; vendas: somas por anúncio; data da última venda).
 - **Vercel:** `META_ADS_TOKEN` cadastrada no projeto `operacao-capi`.
 - **Testado e aprovado pela usuária:**
@@ -21,6 +21,7 @@
   - etapa 11 (10/11/2026): ativos, com queda manual, inventário importado do documento de contingência (021–025), nomes das contas pela Meta, apelidos AC, grupos ativos/desativados, Possui/Acessa pela cadeia, só os pixels GE e Pontos de Comando (027) e o quadro manual de uso das contas (028).
   - etapa 12 refeita (12/11/2026, migration 032): Contingência padrão, com os ativos existentes já classificados pela usuária;
   - ajustes de 12/11/2026: Veicular em lote (várias listas e filtro de cards sem conta), Preencher IDs da Meta, página de Ajuda, Marcar todos no checklist da oferta e vários IDs da Meta por veiculação (031).
+- **Aguardando teste da usuária (12/11/2026):** etapa 13, fases do manual de tráfego (033).
 - **Inventário hoje:** 10 perfis, 13 BMs, 35 contas, 16 páginas, 2 pixels.
 - **Próximas etapas:**
   - importação do Trello concluída (011–015); o resto do Trello foi descartado pela usuária;
@@ -500,3 +501,27 @@ Feito só com leitura: código do dashboard (cópia local de `AysDigital/projeto
 
 - **Conclusão:** não há falha ativa. O alerta de 28/10 olhou logo depois de um buraco de dois dias (a "última venda 26/10 00:44" era em UTC, ou seja, 25/10 21:44 em Brasília). Nada a corrigir no dashboard nem no banco.
 - **Causa do buraco:** não houve buraco. A usuária conferiu no painel da Mundpay: nenhuma venda em 26 e 27/10. Nada a recuperar; assunto encerrado.
+
+## Etapa 13: fases do manual de tráfego (12/11/2026)
+
+Manual de Bidcap da usuária: cada anúncio passa por Validação (D1–D3 desde que começou a rodar), Pré-escala (D4+) e Escala. No fim do D3, o ROAS dos dias de validação decide: avança, monitora ou falhou. Mid-spenders vão para uma conta secundária sem limite de lance (No-Bid).
+
+**Banco (migration 033, rodada em 12/11/2026):**
+- `ofertas`: `roas_avanca` (1,3), `roas_monitora` (0,8), `dias_validacao` (3), `gasto_nospend` (R$ 5) e `escalando` (começou marcado nas ofertas com status "escalando"; nenhuma hoje).
+- `contas_anuncio.papel`: `principal_bidcap` | `secundaria_nobid` | `nenhum` (padrão).
+- `veiculacoes.rodando_desde`: o gatilho `veiculacoes_rodando_desde` preenche na primeira vez que o status vira "rodando" (com a data do status). Para as que já existiam: a atividade mais antiga de "rodando"; sem ela, a data do status se ainda está rodando. Resultado: as 29 rodando ganharam data; as 23 pausadas não (vieram da importação, sem histórico). `veiculacoes.origem`: nota de onde veio.
+- `ops.fase_veiculacao(oferta, card)`: dia (D1 = o dia em que começou, em Brasília), fase (validacao / pre_escala / escala), veredito depois da validação (ROAS ≥ `roas_avanca` avança; ≥ `roas_monitora` monitora; abaixo ou sem gasto falhou; sem ID de anúncio não tem veredito), ROAS/gasto/faturamento da validação e `no_spend`. As vendas vêm só por `ops.vendas_por_dia` (já autorizada).
+- `ops.classificar` (agora com 9 argumentos): ordem no_spend > sem_dados > vencedor > mid_spender > perdedor > promissor > em_teste.
+  - **no_spend:** o card tem veiculações rodando há 2+ dias (com ID) e **todas** gastaram menos que `gasto_nospend` ontem e anteontem.
+  - **mid_spender:** ROAS ≥ mínimo (ou CPA ≤ alvo), pelo menos 1 venda principal, gasto do período de avaliação abaixo da mediana dos cards rodando da mesma oferta, e veiculação com ID em conta Bidcap ou sem papel. Vencedor vem antes: quem já gastou o mínimo com ROAS bom continua vencedor.
+- `ops.ranking` devolve também `no_bid` (o card já tem veiculação numa conta No-Bid).
+- `ops.mandar_para_nobid(card, conta)`: só conta ativa com papel No-Bid; cria a veiculação "Não subido" com a origem "Mid-spender vindo da {contas}" e registra no histórico (`nobid`). Não mexe na veiculação original.
+
+**App:**
+- Ofertas → editar → Regras de performance → "Manual de tráfego (Bidcap)": os cinco campos.
+- Papel da conta em Ativos → Contas (campo e coluna "Papel") e no quadro Uso das contas (modal e selo).
+- Frente do card: pílula por veiculação rodando ("D2 · Validação" ou "Avança 1,8x" / "Monitorar" / "Falhou"; o mouse mostra a conta). Selos ⏸ No-spend (cinza escuro) e ↗ Mid-spender (roxo, tokens `--c-roxo`) no filtro de classificação, no Ranking e na linha de métricas.
+- Card → Veiculação por conta: dia, fase, veredito e ROAS da validação por linha; origem; aviso "Mid-spender" com "Mandar para No-Bid".
+- Ranking: botão "Mandar para No-Bid" nas linhas mid-spender e filtro "Mid-spenders ainda não enviados".
+- Pausar uma veiculação em Validação ou Pré-escala mostra o aviso do manual com "Pausar mesmo assim" (não bloqueia).
+- Ajuda: tópico "Manual de tráfego (Bidcap)".
