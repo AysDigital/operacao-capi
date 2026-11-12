@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Aviso, Carregando, Dica } from '../../../components/ds'
 import { useToast } from '../../../components/Toast'
 import type { CardDetalhe } from '../../../lib/card'
-import { formatarCentavos, formatarDataHora } from '../../../lib/format'
+import { formatarCentavos, formatarDataHora, formatarDiaIso } from '../../../lib/format'
+import { ops } from '../../../lib/supabase'
 import {
   atualizarMetricas,
   indicadores,
@@ -43,6 +44,7 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
   const [ultima, setUltima] = useState<string | null>(null)
   const [atualizando, setAtualizando] = useState(false)
   const [porConta, setPorConta] = useState(false)
+  const [inicio, setInicio] = useState<string | null>(null)
 
   const comId = card.veiculacoes.filter((v) => idsDaVeiculacao(v).length)
   const ids = comId.flatMap(idsDaVeiculacao)
@@ -51,13 +53,16 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
   const carregar = useCallback(async () => {
     if (!chave) return
     try {
-      setPorAnuncio(await numerosPorAnuncio(chave.split(','), dias))
+      const { data: of } = await ops().from('ofertas').select('metricas_desde').eq('id', card.oferta_id).maybeSingle()
+      const minimo = (of?.metricas_desde as string | null) ?? null
+      setInicio(minimo)
+      setPorAnuncio(await numerosPorAnuncio(chave.split(','), dias, minimo))
       setUltima(await ultimaBusca())
       setErro(null)
     } catch (e) {
       setErro((e as Error).message)
     }
-  }, [chave, dias])
+  }, [chave, dias, card.oferta_id])
 
   useEffect(() => {
     carregar()
@@ -212,6 +217,7 @@ export function Metricas({ card, contas, versao }: { card: CardDetalhe; contas: 
       )}
 
       <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+        {inicio && <span>Contando a partir de {formatarDiaIso(inicio)} ·</span>}
         Meta atualizada {ultima ? `em ${formatarDataHora(ultima)}` : 'ainda não'} · vendas ao vivo do dashboard
         <button onClick={() => atualizar()} disabled={atualizando} className={`${botaoPequeno} bg-surface-2 disabled:opacity-50`}>
           {atualizando ? 'Buscando na Meta…' : 'Atualizar agora'}

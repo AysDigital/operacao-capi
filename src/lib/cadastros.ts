@@ -48,6 +48,8 @@ export type Oferta = {
   dias_validacao?: number
   gasto_nospend?: number
   escalando?: boolean
+  /** métricas só contam a partir deste dia (AAAA-MM-DD); null = desde sempre */
+  metricas_desde?: string | null
 }
 
 export const PERIODOS_AVALIACAO = [7, 14, 30] as const

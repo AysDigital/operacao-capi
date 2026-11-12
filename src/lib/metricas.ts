@@ -123,9 +123,10 @@ export const PERIODOS = [
   { valor: 0, nome: 'Tudo' },
 ] as const
 
-/** Totais por ID de anúncio no período (`dias` = 0: tudo). Inclui hoje. */
-export async function numerosPorAnuncio(ids: string[], dias: number): Promise<Map<string, Numeros>> {
-  const desde = dias ? diaBrasilia(-(dias - 1)) : null
+/** Totais por ID de anúncio no período (`dias` = 0: tudo), nunca antes de `minimo` (início das métricas da oferta). Inclui hoje. */
+export async function numerosPorAnuncio(ids: string[], dias: number, minimo: string | null = null): Promise<Map<string, Numeros>> {
+  const periodo = dias ? diaBrasilia(-(dias - 1)) : null
+  const desde = !periodo ? minimo : !minimo ? periodo : periodo > minimo ? periodo : minimo
   let consulta = ops()
     .from('metricas_anuncio_dia')
     .select('meta_ad_id, gasto_brl, impressoes, cliques, cliques_link, compras_meta, visualizacoes_3s, thruplays')

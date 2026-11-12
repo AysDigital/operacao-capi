@@ -250,6 +250,7 @@ const TOPICOS: Topico[] = [
       i(
         'Onde configurar',
         'Ofertas → editar → Regras de performance → Manual de tráfego: ROAS para avançar, ROAS para monitorar, dias de validação, limite do no-spend e "Oferta em escala".',
+        '"Contar métricas a partir de" (na mesma tela): gasto, vendas, ROAS, classificação e fases só contam desse dia em diante. Nada é apagado: mudando a data, os números antigos voltam. Todas as ofertas começaram a contar em 13/11/2026.',
       ),
     ],
   },

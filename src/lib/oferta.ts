@@ -12,7 +12,7 @@ export type OfertaCompleta = Oferta & { anotacoes: string | null }
 export async function buscarOferta(id: string): Promise<OfertaCompleta | null> {
   const { data, error } = await ops()
     .from('ofertas')
-    .select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, roas_avanca, roas_monitora, dias_validacao, gasto_nospend, escalando, anotacoes')
+    .select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, roas_avanca, roas_monitora, dias_validacao, gasto_nospend, escalando, metricas_desde, anotacoes')
     .eq('id', id)
     .maybeSingle()
   if (error) throw new Error(error.message)
@@ -181,8 +181,12 @@ function diasAte(desde: string): string[] {
   return r
 }
 
+/** Dia mais recente entre dois "AAAA-MM-DD" (null = sem limite). */
+export const diaMaisRecente = (a: string | null, b: string | null | undefined) => (!a ? (b ?? null) : !b ? a : a > b ? a : b)
+
 export async function buscarMetricasOferta(ofertaId: string, dias: number): Promise<MetricasOferta> {
-  const desde = desdeDe(dias)
+  const { data: of } = await ops().from('ofertas').select('metricas_desde').eq('id', ofertaId).maybeSingle()
+  const desde = diaMaisRecente(desdeDe(dias), of?.metricas_desde as string | null)
   const [linhas, ids, cob] = await Promise.all([
     buscarRanking(ofertaId, dias, 'anuncio'),
     ops().from('veiculacoes_anuncios').select('meta_ad_id').eq('oferta_id', ofertaId),

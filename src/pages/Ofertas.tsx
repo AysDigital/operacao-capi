@@ -36,7 +36,7 @@ export function SeloStatusOferta({ status }: { status: StatusOferta }) {
 
 export function Ofertas() {
   const { dados, erro, recarregar } = useCarregar<Linha>(() =>
-    ops().from('ofertas').select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, roas_avanca, roas_monitora, dias_validacao, gasto_nospend, escalando, cards(count), checklists(checklist_itens(feito))').order('nome'),
+    ops().from('ofertas').select('id, nome, codigo, idioma, cor, status, cpa_alvo, roas_minimo, gasto_minimo, periodo_avaliacao, roas_avanca, roas_monitora, dias_validacao, gasto_nospend, escalando, metricas_desde, cards(count), checklists(checklist_itens(feito))').order('nome'),
   )
   const [editando, setEditando] = useState<Linha | 'nova' | null>(null)
   const navegar = useNavigate()
@@ -149,6 +149,7 @@ export function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | nul
   const [diasValidacao, setDiasValidacao] = useState(String(oferta?.dias_validacao ?? 3))
   const [gastoNospend, setGastoNospend] = useState(numeroParaTexto(oferta?.gasto_nospend ?? 5))
   const [escalando, setEscalando] = useState(oferta?.escalando ?? false)
+  const [metricasDesde, setMetricasDesde] = useState(oferta?.metricas_desde ?? '')
   const [salvando, setSalvando] = useState(false)
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [tentou, setTentou] = useState(false)
@@ -167,6 +168,7 @@ export function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | nul
     dias_validacao: Math.round(lerNumero(diasValidacao) ?? 3),
     gasto_nospend: lerNumero(gastoNospend) ?? 5,
     escalando,
+    metricas_desde: metricasDesde || null,
   }
   const erros = {
     cpa: erroNumero(regras.cpa_alvo),
@@ -306,6 +308,9 @@ export function ModalOferta({ oferta, onFechar, onSalvo }: { oferta: Linha | nul
             </Campo>
             <Campo rotulo="Gasto mínimo (R$)" erro={erros.gasto}>
               <input value={gastoMinimo} onChange={(e) => setGastoMinimo(e.target.value)} className={entrada} inputMode="decimal" placeholder="Ex.: 200" />
+            </Campo>
+            <Campo rotulo="Contar métricas a partir de">
+              <input type="date" value={metricasDesde} onChange={(e) => setMetricasDesde(e.target.value)} className={entrada} />
             </Campo>
             <Campo rotulo="Período de avaliação">
               <select value={periodo} onChange={(e) => setPeriodo(Number(e.target.value))} className={entrada}>
