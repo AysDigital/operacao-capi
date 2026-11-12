@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import { useToast } from '../../components/Toast'
 import { Botao } from '../../components/ui'
-import { type Inventario } from '../../lib/ativos'
-import { buscarAquecimentos, diaAtual, progresso, STATUS_AQUECIMENTO, type Aquecimento, type TipoAquecivel } from '../../lib/contingencia'
+import { TABELA, type Inventario } from '../../lib/ativos'
+import { mensagemErro } from '../../lib/cadastros'
+import { buscarAquecimentos, diaDoQuadro, progresso, situacaoDe, STATUS_AQUECIMENTO, type Aquecimento, type TipoAquecivel } from '../../lib/contingencia'
+import { ops } from '../../lib/supabase'
+import { SeloAquecimento } from '../ativos/campos'
 import { formatarDiaIso } from '../../lib/format'
 import { IniciarAquecimento } from './IniciarAquecimento'
 
-/** Bloco "Aquecimento" no painel do ativo em Ativos (perfis, contas e páginas). */
+/** Bloco "Aquecimento" no painel do ativo em Ativos (perfis, BMs, contas e páginas). */
 export function AquecimentoDoAtivo({ tipo, id, inv, onMudou }: { tipo: TipoAquecivel; id: string; inv: Inventario; onMudou: () => void }) {
+  const toast = useToast()
+  const registro = inv[tipo].find((r) => r.id === id)
   const [lista, setLista] = useState<Aquecimento[] | null>(null)
   const [iniciando, setIniciando] = useState(false)
 
@@ -27,14 +33,30 @@ export function AquecimentoDoAtivo({ tipo, id, inv, onMudou }: { tipo: TipoAquec
   const atual = lista.find((a) => a.status === 'andamento')
   const anteriores = lista.filter((a) => a.status !== 'andamento')
 
+  async function marcarPronto() {
+    const { error } = await ops().from(TABELA[tipo]).update({ aquecimento: 'pronto' }).eq('id', id)
+    if (error) return toast('ruim', mensagemErro(error))
+    toast('bom', 'Marcado como pronto.')
+    onMudou()
+  }
+
   return (
     <section className="border-t border-line pt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Aquecimento</h3>
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          Aquecimento {registro && <SeloAquecimento r={registro} />}
+        </h3>
         {!atual && (
-          <Botao variante="secundario" onClick={() => setIniciando(true)}>
-            Iniciar aquecimento
-          </Botao>
+          <span className="flex gap-2">
+            {situacaoDe(registro) === 'a_classificar' && (
+              <Botao variante="secundario" onClick={marcarPronto}>
+                ✓ Já está pronto
+              </Botao>
+            )}
+            <Botao variante="secundario" onClick={() => setIniciando(true)}>
+              {situacaoDe(registro) === 'pronto' ? 'Aquecer de novo' : 'Iniciar aquecimento'}
+            </Botao>
+          </span>
         )}
       </div>
       {atual ? (
@@ -42,7 +64,7 @@ export function AquecimentoDoAtivo({ tipo, id, inv, onMudou }: { tipo: TipoAquec
           <span className="font-medium">{atual.rotina_nome}</span>
           <span className="text-muted">
             {' '}
-            · D{diaAtual(atual)} de {atual.duracao_dias} · {progresso(atual).feitas}/{progresso(atual).total} tarefas
+            · no Dia {diaDoQuadro(atual)} de {atual.duracao_dias} · {progresso(atual).feitas}/{progresso(atual).total} tarefas
           </span>{' '}
           <Link to="/contingencia" className="text-accent-strong hover:underline">
             Abrir na Contingência

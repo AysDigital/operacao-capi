@@ -8,7 +8,7 @@ import { NOME_TIPO, TIPOS_AQUECIVEIS, type Reserva, type SituacaoReserva } from 
 import { ops } from '../../lib/supabase'
 
 const EXPLICACAO =
-  'Pronto = não caído, com aquecimento concluído e sem uso agora: perfil com status "Pronto"; conta na coluna "Sem uso" do quadro de uso; página sem oferta ligada.'
+  'Pronto = não caído, com aquecimento "Pronto" e sem uso agora: perfil fora de "Em uso"; conta na coluna "Sem uso" do quadro de uso; página sem oferta ligada; BM pronta.'
 
 /** Painel do topo da Contingência: prontos × mínimo por tipo. */
 export function PainelReserva({ situacao, reserva, onMudou }: { situacao: SituacaoReserva[]; reserva: Reserva; onMudou: () => void }) {
@@ -26,7 +26,7 @@ export function PainelReserva({ situacao, reserva, onMudou }: { situacao: Situac
           Configurar mínimo
         </button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {situacao.map((s) => (
           <div key={s.tipo} className={`rounded-card border p-3 ${s.abaixo ? 'border-bad/50 bg-bad-soft/40' : 'border-line bg-surface'}`}>
             <p className="text-xs text-muted">{NOME_TIPO[s.tipo].varios} prontos</p>
@@ -107,7 +107,7 @@ function ConfigurarReserva({ reserva, onFechar, onSalvo }: { reserva: Reserva; o
         </>
       }
     >
-      <form id="form-reserva" onSubmit={salvar} className="grid gap-4 sm:grid-cols-3">
+      <form id="form-reserva" onSubmit={salvar} className="grid gap-4 sm:grid-cols-4">
         {TIPOS_AQUECIVEIS.map((t) => (
           <Campo key={t} rotulo={NOME_TIPO[t].varios}>
             <input type="number" min={0} max={999} value={valores[t]} onChange={(e) => setValores((v) => ({ ...v, [t]: e.target.value }))} className={entrada} />

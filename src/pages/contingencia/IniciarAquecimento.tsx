@@ -47,7 +47,7 @@ export function IniciarAquecimento({
 
   const daVez = (rotinas ?? []).filter((r) => r.tipo === tipo)
   useEffect(() => {
-    if (!daVez.some((r) => r.id === rotina)) setRotina(daVez[0]?.id ?? '')
+    if (!daVez.some((r) => r.id === rotina)) setRotina((daVez.find((r) => r.padrao) ?? daVez[0])?.id ?? '')
   }, [tipo, rotinas]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const opcoes = inv[tipo]
@@ -57,7 +57,7 @@ export function IniciarAquecimento({
   async function iniciar(e: FormEvent) {
     e.preventDefault()
     if (!ativo) return toast('ruim', 'Escolha o ativo.')
-    if (!rotina) return toast('ruim', 'Escolha a rotina.')
+    if (!rotina) return toast('ruim', 'Escolha o roteiro.')
     setSalvando(true)
     const { data, error } = await ops().rpc('iniciar_aquecimento', { p_tipo: tipo, p_id: ativo, p_rotina: rotina, p_inicio: inicio || null })
     setSalvando(false)
@@ -117,18 +117,18 @@ export function IniciarAquecimento({
         )}
         {rotinas && !daVez.length ? (
           <Aviso tom="atencao">
-            Nenhuma rotina ativa para {NOME_TIPO[tipo].varios.toLowerCase()}.{' '}
-            <Link to="/contingencia?aba=rotinas" className="font-medium underline" onClick={onFechar}>
-              Criar uma rotina
+            Nenhum roteiro ativo para {NOME_TIPO[tipo].varios.toLowerCase()}.{' '}
+            <Link to="/contingencia?aba=roteiros" className="font-medium underline" onClick={onFechar}>
+              Criar um roteiro
             </Link>
           </Aviso>
         ) : (
           <div className="grid gap-4 sm:grid-cols-[1fr_11rem]">
-            <Campo rotulo="Rotina">
+            <Campo rotulo="Roteiro">
               <select value={rotina} onChange={(e) => setRotina(e.target.value)} className={entrada} disabled={!rotinas}>
                 {daVez.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.nome} ({r.duracao_dias} dias)
+                    {r.nome} ({r.duracao_dias} dias){r.padrao ? ' ★' : ''}
                   </option>
                 ))}
               </select>

@@ -131,7 +131,7 @@ export function PainelAtivo({
             ))}
         </dl>
 
-        {(tipo === 'perfil' || tipo === 'conta' || tipo === 'pagina') && <AquecimentoDoAtivo key={id} tipo={tipo} id={id} inv={inv} onMudou={mudou} />}
+        {(tipo === 'perfil' || tipo === 'bm' || tipo === 'conta' || tipo === 'pagina') && <AquecimentoDoAtivo key={id} tipo={tipo} id={id} inv={inv} onMudou={mudou} />}
         {ehAcessavel(tipo) && <Acessos tipo={tipo} id={id} inv={inv} onMudou={mudou} onAbrir={onAbrir} />}
         {ehTitular(tipo) && <PossuiAcessa tipo={tipo} id={id} inv={inv} onAbrir={onAbrir} />}
         <Uso tipo={tipo} id={id} inv={inv} onAbrir={onAbrir} versao={versao} />

@@ -8,7 +8,7 @@ import { donaDe, nomeAtivo, type Inventario, type Registro, type TipoAtivo } fro
 import { mensagemErro } from '../../lib/cadastros'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
 import { ops } from '../../lib/supabase'
-import { SeloStatusAtivo } from './campos'
+import { SeloAquecimento, SeloStatusAtivo } from './campos'
 
 /**
  * Quadro de uso das contas, controlado à mão: arrastar a conta entre
@@ -134,6 +134,7 @@ function CartaoConta({ conta, inv, oferta, onAbrir }: { conta: Registro; inv: In
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-info-soft px-2 py-0.5 font-mono text-xs font-semibold text-info">{String(conta.apelido)}</span>
         {conta.status !== 'ativa' && <SeloStatusAtivo tipo="conta" status={conta.status} />}
+        <SeloAquecimento r={conta} soPendente />
         {conta.uso_desde ? <span className="ml-auto text-xs text-muted">desde {formatarDiaIso(conta.uso_desde as string)}</span> : null}
       </div>
       <p className="mt-1 font-medium break-words">{String(conta.nome)}</p>

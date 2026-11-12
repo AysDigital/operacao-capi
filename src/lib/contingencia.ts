@@ -3,19 +3,32 @@ import { diaBrasilia } from './format'
 import { ops } from './supabase'
 
 /**
- * Contingência (etapa 12): rotinas de aquecimento, aquecimentos, reserva mínima e quedas.
- * Nada aqui muda status de ativo nem coluna do quadro de uso: isso é sempre a usuária.
+ * Contingência (etapas 12 e 032): roteiros padrão de aquecimento, quadro por dia,
+ * reserva mínima e quedas.
+ * Cadastrou um perfil/BM/conta/página → entra sozinho no aquecimento (roteiro padrão do tipo).
+ * Marcou todo o checklist → o banco conclui o aquecimento e o ativo fica "Pronto".
  */
 
-export type TipoAquecivel = 'perfil' | 'pagina' | 'conta'
-export const TIPOS_AQUECIVEIS: TipoAquecivel[] = ['perfil', 'conta', 'pagina']
+export type TipoAquecivel = 'perfil' | 'bm' | 'pagina' | 'conta'
+export const TIPOS_AQUECIVEIS: TipoAquecivel[] = ['perfil', 'bm', 'conta', 'pagina']
 export const NOME_TIPO: Record<TipoAquecivel, { um: string; varios: string }> = {
   perfil: { um: 'Perfil', varios: 'Perfis' },
+  bm: { um: 'BM', varios: 'BMs' },
   conta: { um: 'Conta', varios: 'Contas' },
   pagina: { um: 'Página', varios: 'Páginas' },
 }
+export const ehAquecivel = (t: string): t is TipoAquecivel => (TIPOS_AQUECIVEIS as string[]).includes(t)
 
-export type Rotina = { id: string; nome: string; tipo: TipoAquecivel; duracao_dias: number; ativa: boolean; descricao: string | null }
+/** Situação do ativo na contingência (coluna "aquecimento" de perfis, BMs, contas e páginas). */
+export type SituacaoAquecimento = 'a_classificar' | 'aquecendo' | 'pronto'
+export const SITUACAO_AQUECIMENTO: Record<SituacaoAquecimento, { nome: string; icone: string; tom: 'bom' | 'atencao' | 'neutro' }> = {
+  a_classificar: { nome: 'A classificar', icone: '?', tom: 'neutro' },
+  aquecendo: { nome: 'Aquecendo', icone: '◐', tom: 'atencao' },
+  pronto: { nome: 'Pronto', icone: '✓', tom: 'bom' },
+}
+export const situacaoDe = (r: { [k: string]: unknown } | undefined): SituacaoAquecimento => (r?.aquecimento as SituacaoAquecimento) ?? 'a_classificar'
+
+export type Rotina = { id: string; nome: string; tipo: TipoAquecivel; duracao_dias: number; ativa: boolean; descricao: string | null; padrao: boolean }
 export type TarefaRotina = { id: string; rotina_id: string; dia: number | null; texto: string; ordem: number }
 
 export type StatusAquecimento = 'andamento' | 'concluido' | 'interrompido'
@@ -43,7 +56,7 @@ export type Aquecimento = {
 
 export async function buscarRotinas() {
   const [r, t] = await Promise.all([
-    ops().from('rotinas_aquecimento').select('id, nome, tipo, duracao_dias, ativa, descricao').order('nome'),
+    ops().from('rotinas_aquecimento').select('id, nome, tipo, duracao_dias, ativa, descricao, padrao').order('nome'),
     ops().from('rotinas_tarefas').select('id, rotina_id, dia, texto, ordem'),
   ])
   const erro = r.error ?? t.error
@@ -76,6 +89,18 @@ export function progresso(a: Aquecimento) {
   return { total, feitas, pct: total ? Math.round((feitas / total) * 100) : 0 }
 }
 
+/**
+ * Coluna do quadro: o primeiro dia que ainda tem tarefa por marcar.
+ * Tudo marcado = 0 (coluna "Pronto").
+ */
+export function diaDoQuadro(a: Aquecimento) {
+  const pendentes = a.tarefas.filter((t) => !t.feito).map((t) => t.dia)
+  return pendentes.length ? Math.min(...pendentes) : 0
+}
+
+/** Atrasado: o calendário já passou do dia em que o card está. */
+export const atrasado = (a: Aquecimento) => a.status === 'andamento' && diaDoQuadro(a) > 0 && diaAtual(a) > diaDoQuadro(a)
+
 export const ordenarTarefas = (ts: TarefaAquecimento[]) => [...ts].sort((x, y) => x.dia - y.dia || x.ordem - y.ordem)
 
 // ---------------------------------------------------------------------
@@ -86,30 +111,30 @@ export type Reserva = Record<TipoAquecivel, number>
 export async function buscarReserva(): Promise<Reserva> {
   const { data, error } = await ops().from('reserva_minima').select('tipo, minimo')
   if (error) throw new Error(error.message)
-  const r: Reserva = { perfil: 0, conta: 0, pagina: 0 }
+  const r: Reserva = { perfil: 0, bm: 0, conta: 0, pagina: 0 }
   for (const x of data ?? []) r[x.tipo as TipoAquecivel] = x.minimo
   return r
 }
 
 /**
- * "Pronto" = não caído, com aquecimento concluído e sem uso no momento:
- * perfil com status "pronto"; conta na coluna "Sem uso" do quadro de uso; página sem oferta ligada.
+ * Reserva = prontos e sem uso no momento (não caídos):
+ * perfil fora de "Em uso"; conta na coluna "Sem uso" do quadro de uso; página sem oferta ligada; BM pronta.
  */
-export function prontos(inv: Inventario, aquecimentos: Aquecimento[], tipo: TipoAquecivel): Registro[] {
-  const aquecidos = new Set(aquecimentos.filter((a) => a.ativo_tipo === tipo && a.status === 'concluido').map((a) => a.ativo_id))
+export function prontos(inv: Inventario, tipo: TipoAquecivel): Registro[] {
   return inv[tipo].filter((r) => {
-    if (caido(tipo, r.status as string) || !aquecidos.has(r.id)) return false
-    if (tipo === 'perfil') return r.status === 'pronto'
+    if (caido(tipo, r.status as string) || situacaoDe(r) !== 'pronto') return false
+    if (tipo === 'perfil') return r.status !== 'em_uso'
     if (tipo === 'conta') return (r.uso ?? 'parada') === 'parada'
-    return !inv.ofertasAtivos.some((o) => o.pagina_id === r.id)
+    if (tipo === 'pagina') return !inv.ofertasAtivos.some((o) => o.pagina_id === r.id)
+    return true
   })
 }
 
 export type SituacaoReserva = { tipo: TipoAquecivel; prontos: number; minimo: number; abaixo: boolean }
 
-export function situacaoReserva(inv: Inventario, aquecimentos: Aquecimento[], reserva: Reserva): SituacaoReserva[] {
+export function situacaoReserva(inv: Inventario, reserva: Reserva): SituacaoReserva[] {
   return TIPOS_AQUECIVEIS.map((tipo) => {
-    const n = prontos(inv, aquecimentos, tipo).length
+    const n = prontos(inv, tipo).length
     return { tipo, prontos: n, minimo: reserva[tipo], abaixo: n < reserva[tipo] }
   })
 }

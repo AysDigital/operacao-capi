@@ -18,7 +18,7 @@ import {
   type TipoAtivo,
 } from '../lib/ativos'
 import { mensagemErro } from '../lib/cadastros'
-import { buscarAquecimentos, buscarReserva, situacaoReserva, type Aquecimento, type Reserva } from '../lib/contingencia'
+import { buscarReserva, situacaoReserva, type Reserva } from '../lib/contingencia'
 import { buscarNomesContas } from '../lib/metricas'
 import { ops } from '../lib/supabase'
 import { colunas, textoBusca } from './ativos/campos'
@@ -65,17 +65,11 @@ export function Ativos() {
   const dependentes = useMemo(() => (inv ? dependentesUnicos(inv) : []), [inv])
 
   // Reserva mínima da Contingência (só avisa; nada muda aqui).
-  const [contingencia, setContingencia] = useState<{ aquecimentos: Aquecimento[]; reserva: Reserva } | null>(null)
+  const [reserva, setReserva] = useState<Reserva | null>(null)
   useEffect(() => {
-    Promise.all([buscarAquecimentos(), buscarReserva()]).then(
-      ([aquecimentos, reserva]) => setContingencia({ aquecimentos, reserva }),
-      () => setContingencia(null),
-    )
+    buscarReserva().then(setReserva, () => setReserva(null))
   }, [inv])
-  const reservaAbaixo = useMemo(
-    () => (inv && contingencia ? situacaoReserva(inv, contingencia.aquecimentos, contingencia.reserva).filter((s) => s.abaixo) : []),
-    [inv, contingencia],
-  )
+  const reservaAbaixo = useMemo(() => (inv && reserva ? situacaoReserva(inv, reserva).filter((s) => s.abaixo) : []), [inv, reserva])
 
   const linhas = useMemo(() => {
     if (!inv) return []

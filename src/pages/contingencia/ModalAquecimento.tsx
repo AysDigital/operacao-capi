@@ -2,62 +2,49 @@ import { useState } from 'react'
 import { Aviso, Modal, Selo } from '../../components/ds'
 import { useToast } from '../../components/Toast'
 import { Botao, BotaoExcluir, Campo, entrada } from '../../components/ui'
-import { nomeDe, STATUS_ATIVO, type Inventario } from '../../lib/ativos'
+import { nomeDe, type Inventario } from '../../lib/ativos'
 import { mensagemErro } from '../../lib/cadastros'
-import { diaAtual, NOME_TIPO, ordenarTarefas, progresso, STATUS_AQUECIMENTO, type Aquecimento, type TarefaAquecimento } from '../../lib/contingencia'
+import { atrasado, diaAtual, diaDoQuadro, NOME_TIPO, ordenarTarefas, progresso, STATUS_AQUECIMENTO, type Aquecimento, type TarefaAquecimento } from '../../lib/contingencia'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
 import { ops } from '../../lib/supabase'
 import { SeloStatusAtivo } from '../ativos/campos'
 
-/** Marca/desmarca uma tarefa. */
-export async function marcarTarefa(t: TarefaAquecimento, feito: boolean) {
-  const { error } = await ops()
-    .from('aquecimento_tarefas')
-    .update({ feito, feito_em: feito ? new Date().toISOString() : null })
-    .eq('id', t.id)
-  return error
-}
-
-export function LinhaTarefa({ t, atrasada, onMudou }: { t: TarefaAquecimento; atrasada?: boolean; onMudou: (t: TarefaAquecimento) => void }) {
-  const toast = useToast()
-  const [ocupado, setOcupado] = useState(false)
-  async function alternar() {
-    setOcupado(true)
-    const error = await marcarTarefa(t, !t.feito)
-    setOcupado(false)
-    if (error) return toast('ruim', mensagemErro(error))
-    onMudou({ ...t, feito: !t.feito, feito_em: !t.feito ? new Date().toISOString() : null })
-  }
-  return (
-    <li className={`flex items-start gap-2 rounded-control px-2 py-1.5 text-sm ${atrasada && !t.feito ? 'bg-bad-soft text-bad' : ''}`}>
-      <input type="checkbox" checked={t.feito} onChange={alternar} disabled={ocupado} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--c-accent)]" aria-label={t.texto} />
-      <span className={`flex-1 ${t.feito ? 'text-muted line-through' : ''}`}>
-        {atrasada && !t.feito && <span className="mr-1.5 text-xs font-semibold">D{t.dia} · atrasada</span>}
-        {t.texto}
-        {t.diaria && <span className="ml-1.5 text-xs text-muted">(todo dia)</span>}
-      </span>
-    </li>
-  )
-}
-
-/** Aquecimento completo: todas as tarefas por dia, observações, concluir e interromper. */
+/**
+ * Card do aquecimento: checklist por dia. Marcou tudo, o banco conclui o
+ * aquecimento e o ativo fica "Pronto" (desmarcar reabre).
+ */
 export function ModalAquecimento({ aq, inv, onFechar, onMudou }: { aq: Aquecimento; inv: Inventario; onFechar: () => void; onMudou: () => void }) {
   const toast = useToast()
   const [tarefas, setTarefas] = useState(ordenarTarefas(aq.tarefas))
   const [obs, setObs] = useState(aq.observacoes ?? '')
-  const [acao, setAcao] = useState<'concluir' | 'interromper' | null>(null)
+  const [interrompendo, setInterrompendo] = useState(false)
   const [motivo, setMotivo] = useState('')
-  const [fim, setFim] = useState(diaBrasilia())
-  const [salvando, setSalvando] = useState(false)
-  const [depois, setDepois] = useState<'concluido' | 'interrompido' | null>(null)
   const [confirmarExcluir, setConfirmarExcluir] = useState(false)
+  const [ocupado, setOcupado] = useState(false)
 
   const ativo = inv[aq.ativo_tipo].find((r) => r.id === aq.ativo_id)
   const atual: Aquecimento = { ...aq, tarefas }
-  const dia = diaAtual(atual)
   const p = progresso(atual)
+  const diaCard = diaDoQuadro(atual)
+  const hoje = Math.min(diaAtual(atual), aq.duracao_dias)
   const dias = [...new Set(tarefas.map((t) => t.dia))].sort((a, b) => a - b)
+  const andamento = aq.status !== 'interrompido'
   const st = STATUS_AQUECIMENTO.find((s) => s.valor === aq.status)!
+
+  /** Marca/desmarca tarefas; avisa quando o checklist fecha. */
+  async function marcar(lista: TarefaAquecimento[], feito: boolean) {
+    const ids = lista.filter((t) => t.feito !== feito).map((t) => t.id)
+    if (!ids.length) return
+    setOcupado(true)
+    const quando = feito ? new Date().toISOString() : null
+    const { error } = await ops().from('aquecimento_tarefas').update({ feito, feito_em: quando }).in('id', ids)
+    setOcupado(false)
+    if (error) return toast('ruim', mensagemErro(error))
+    const novas = tarefas.map((t) => (ids.includes(t.id) ? { ...t, feito, feito_em: quando } : t))
+    setTarefas(novas)
+    if (feito && novas.every((t) => t.feito)) toast('bom', `${nomeDe(aq.ativo_tipo, ativo)} está pronto para uso.`)
+    onMudou()
+  }
 
   async function salvarObs() {
     if ((aq.observacoes ?? '') === obs) return
@@ -66,18 +53,18 @@ export function ModalAquecimento({ aq, inv, onFechar, onMudou }: { aq: Aquecimen
     else onMudou()
   }
 
-  async function finalizar() {
-    if (acao === 'interromper' && !motivo.trim()) return toast('ruim', 'Escreva o motivo.')
-    setSalvando(true)
-    const status = acao === 'concluir' ? 'concluido' : 'interrompido'
+  async function interromper() {
+    if (!motivo.trim()) return toast('ruim', 'Escreva o motivo.')
+    setOcupado(true)
     const { error } = await ops()
       .from('aquecimentos')
-      .update({ status, fim: fim || diaBrasilia(), motivo: acao === 'interromper' ? motivo.trim() : null, observacoes: obs.trim() || null })
+      .update({ status: 'interrompido', fim: diaBrasilia(), motivo: motivo.trim(), observacoes: obs.trim() || null })
       .eq('id', aq.id)
-    setSalvando(false)
+    setOcupado(false)
     if (error) return toast('ruim', mensagemErro(error))
+    toast('bom', 'Aquecimento interrompido. O ativo voltou para "A classificar".')
     onMudou()
-    setDepois(status)
+    onFechar()
   }
 
   async function excluir() {
@@ -88,38 +75,38 @@ export function ModalAquecimento({ aq, inv, onFechar, onMudou }: { aq: Aquecimen
     onFechar()
   }
 
-  if (depois) return <DepoisDoAquecimento aq={aq} inv={inv} resultado={depois} onFechar={onFechar} onMudou={onMudou} />
-
   return (
     <Modal
-      titulo={`Aquecimento: ${nomeDe(aq.ativo_tipo, ativo)}`}
+      titulo={nomeDe(aq.ativo_tipo, ativo)}
       largura="max-w-3xl"
       onFechar={() => {
         salvarObs()
         onFechar()
       }}
       rodape={
-        aq.status === 'andamento' && !acao ? (
+        interrompendo ? (
           <>
-            {!confirmarExcluir && <BotaoExcluir onClick={() => setConfirmarExcluir(true)}>Excluir</BotaoExcluir>}
-            <Botao variante="secundario" onClick={() => setAcao('interromper')} className="ml-auto">
-              Interromper
-            </Botao>
-            <Botao onClick={() => setAcao('concluir')}>Concluir</Botao>
-          </>
-        ) : acao ? (
-          <>
-            <Botao variante="secundario" onClick={() => setAcao(null)} className="ml-auto">
+            <Botao variante="secundario" onClick={() => setInterrompendo(false)} className="ml-auto">
               Voltar
             </Botao>
-            <Botao onClick={finalizar} disabled={salvando}>
-              {salvando ? 'Salvando…' : acao === 'concluir' ? 'Confirmar conclusão' : 'Confirmar interrupção'}
+            <Botao onClick={interromper} disabled={ocupado}>
+              Confirmar interrupção
             </Botao>
           </>
         ) : (
           <>
             {!confirmarExcluir && <BotaoExcluir onClick={() => setConfirmarExcluir(true)}>Excluir</BotaoExcluir>}
-            <Botao variante="secundario" onClick={onFechar} className="ml-auto">
+            {aq.status === 'andamento' && (
+              <>
+                <Botao variante="secundario" onClick={() => setInterrompendo(true)} className="ml-auto">
+                  Interromper
+                </Botao>
+                <Botao variante="secundario" onClick={() => marcar(tarefas, true)} disabled={ocupado}>
+                  Marcar tudo (pronto)
+                </Botao>
+              </>
+            )}
+            <Botao onClick={onFechar} className={aq.status === 'andamento' ? '' : 'ml-auto'}>
               Fechar
             </Botao>
           </>
@@ -137,173 +124,92 @@ export function ModalAquecimento({ aq, inv, onFechar, onMudou }: { aq: Aquecimen
             }
             onFechar={() => setConfirmarExcluir(false)}
           >
-            Excluir este aquecimento e todas as tarefas dele? O ativo não muda.
+            Excluir este aquecimento e o checklist dele? {aq.status === 'andamento' && 'O ativo volta para "A classificar".'}
           </Aviso>
         )}
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <Selo tom={aq.status === 'concluido' ? 'bom' : aq.status === 'interrompido' ? 'ruim' : 'atencao'}>
-            <span aria-hidden>{st.icone}</span>
-            {st.nome}
+            <span aria-hidden>{aq.status === 'concluido' ? '✓' : st.icone}</span>
+            {aq.status === 'concluido' ? 'Pronto' : aq.status === 'andamento' ? `Dia ${diaCard}` : st.nome}
           </Selo>
+          {atrasado(atual) && (
+            <Selo tom="ruim">
+              <span aria-hidden>!</span>
+              Atrasado: hoje é D{hoje}
+            </Selo>
+          )}
           <span className="text-muted">{NOME_TIPO[aq.ativo_tipo].um}</span>
           {ativo && <SeloStatusAtivo tipo={aq.ativo_tipo} status={ativo.status} />}
-          <span>{aq.rotina_nome}</span>
           <span className="text-muted">
-            início {formatarDiaIso(aq.inicio)}
+            {aq.rotina_nome} · início {formatarDiaIso(aq.inicio)}
             {aq.fim && ` · fim ${formatarDiaIso(aq.fim)}`}
           </span>
           <span className="ml-auto font-medium tabular-nums">
-            {aq.status === 'andamento' && `D${dia} de ${aq.duracao_dias} · `}
             {p.feitas}/{p.total} tarefas
           </span>
         </div>
         {aq.motivo && <Aviso tom="ruim">Motivo da interrupção: {aq.motivo}</Aviso>}
 
-        {acao && (
-          <div className="grid gap-3 rounded-card border border-line bg-surface-2/50 p-3 sm:grid-cols-[1fr_11rem]">
-            {acao === 'interromper' ? (
-              <Campo rotulo="Motivo">
-                <input autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} className={entrada} placeholder="Ex.: perfil pediu checkpoint no D5" />
-              </Campo>
-            ) : (
-              <p className="self-end pb-2 text-sm text-muted">
-                {p.feitas < p.total ? `Ainda há ${p.total - p.feitas} tarefa(s) sem marcar. Pode concluir assim mesmo.` : 'Todas as tarefas foram feitas.'}
-              </p>
-            )}
-            <Campo rotulo="Data do fim">
-              <input type="date" value={fim} max={diaBrasilia()} onChange={(e) => setFim(e.target.value)} className={entrada} />
-            </Campo>
-          </div>
+        {interrompendo && (
+          <Campo rotulo="Por que parou?">
+            <input autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} className={entrada} placeholder="Ex.: perfil pediu checkpoint no D5" />
+          </Campo>
         )}
 
-        <div className="space-y-3">
-          {dias.length === 0 && <p className="text-sm text-muted">A rotina não tinha tarefas.</p>}
-          {dias.map((d) => (
-            <section key={d}>
-              <h3 className={`mb-1 text-xs font-semibold ${aq.status === 'andamento' && d === dia ? 'text-accent-strong' : 'text-muted'}`}>
-                D{d}
-                {aq.status === 'andamento' && d === dia && ' · hoje'}
-              </h3>
-              <ul>
-                {tarefas
-                  .filter((t) => t.dia === d)
-                  .map((t) => (
-                    <LinhaTarefa
-                      key={t.id}
-                      t={t}
-                      atrasada={aq.status === 'andamento' && d < dia}
-                      onMudou={(n) => {
-                        setTarefas((ts) => ts.map((x) => (x.id === n.id ? n : x)))
-                        onMudou()
-                      }}
-                    />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {dias.length === 0 && <p className="text-sm text-muted">Este aquecimento não tem tarefas.</p>}
+          {dias.map((d) => {
+            const doDia = tarefas.filter((t) => t.dia === d)
+            const feitas = doDia.filter((t) => t.feito).length
+            const completo = feitas === doDia.length
+            const destaque = aq.status === 'andamento' && d === diaCard
+            return (
+              <section key={d} className={`rounded-card border p-3 ${destaque ? 'border-accent bg-accent-soft/30' : 'border-line'}`}>
+                <header className="mb-1.5 flex items-center gap-2">
+                  <h3 className={`text-sm font-semibold ${completo ? 'text-good' : ''}`}>
+                    {completo && '✓ '}Dia {d}
+                  </h3>
+                  <span className="text-xs text-muted tabular-nums">
+                    {feitas}/{doDia.length}
+                  </span>
+                  {andamento && (
+                    <button
+                      onClick={() => marcar(doDia, !completo)}
+                      disabled={ocupado}
+                      className="ml-auto rounded-control px-2 py-0.5 text-xs text-muted hover:bg-surface-2 hover:text-ink"
+                    >
+                      {completo ? 'Desmarcar todos' : 'Marcar todos'}
+                    </button>
+                  )}
+                </header>
+                <ul className="space-y-0.5">
+                  {doDia.map((t) => (
+                    <li key={t.id}>
+                      <label className="flex cursor-pointer items-start gap-2 rounded-control px-1 py-1 text-sm hover:bg-surface-2">
+                        <input
+                          type="checkbox"
+                          checked={t.feito}
+                          onChange={() => marcar([t], !t.feito)}
+                          disabled={ocupado || !andamento}
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--c-accent)]"
+                        />
+                        <span className={t.feito ? 'text-muted line-through' : ''}>
+                          {t.texto}
+                          {t.diaria && <span className="ml-1.5 text-xs text-muted no-underline">(todo dia)</span>}
+                        </span>
+                      </label>
+                    </li>
                   ))}
-              </ul>
-            </section>
-          ))}
+                </ul>
+              </section>
+            )
+          })}
         </div>
 
         <Campo rotulo="Observações">
           <textarea value={obs} onChange={(e) => setObs(e.target.value)} onBlur={salvarObs} rows={3} className={`${entrada} resize-y`} />
         </Campo>
-      </div>
-    </Modal>
-  )
-}
-
-/**
- * Depois de concluir ou interromper: pergunta se quer mudar o status do ativo
- * (e, para conta, a coluna do quadro de uso). Nada muda sem a usuária confirmar.
- */
-function DepoisDoAquecimento({
-  aq,
-  inv,
-  resultado,
-  onFechar,
-  onMudou,
-}: {
-  aq: Aquecimento
-  inv: Inventario
-  resultado: 'concluido' | 'interrompido'
-  onFechar: () => void
-  onMudou: () => void
-}) {
-  const toast = useToast()
-  const ativo = inv[aq.ativo_tipo].find((r) => r.id === aq.ativo_id)
-  const atualStatus = (ativo?.status as string) ?? ''
-  const sugestao = resultado === 'concluido' && aq.ativo_tipo === 'perfil' ? 'pronto' : atualStatus
-  const [status, setStatus] = useState(sugestao)
-  const [uso, setUso] = useState((ativo?.uso as string) ?? 'parada')
-  const [salvando, setSalvando] = useState(false)
-
-  async function aplicar() {
-    setSalvando(true)
-    if (status !== atualStatus) {
-      const { error } = await ops().rpc('mudar_status_ativo', {
-        p_tipo: aq.ativo_tipo,
-        p_id: aq.ativo_id,
-        p_status: status,
-        p_motivo: `Aquecimento ${resultado === 'concluido' ? 'concluído' : 'interrompido'} (${aq.rotina_nome})`,
-        p_data: diaBrasilia(),
-      })
-      if (error) {
-        setSalvando(false)
-        return toast('ruim', mensagemErro(error))
-      }
-    }
-    if (aq.ativo_tipo === 'conta' && uso !== ((ativo?.uso as string) ?? 'parada')) {
-      const { error } = await ops()
-        .from('contas_anuncio')
-        .update({ uso, uso_desde: diaBrasilia(), uso_posicao: Date.now(), ...(uso === 'parada' ? { uso_oferta_id: null } : {}) })
-        .eq('id', aq.ativo_id)
-      if (error) {
-        setSalvando(false)
-        return toast('ruim', mensagemErro(error))
-      }
-    }
-    setSalvando(false)
-    toast('bom', 'Ativo atualizado.')
-    onMudou()
-    onFechar()
-  }
-
-  return (
-    <Modal
-      titulo={resultado === 'concluido' ? 'Aquecimento concluído' : 'Aquecimento interrompido'}
-      onFechar={onFechar}
-      rodape={
-        <>
-          <Botao variante="secundario" onClick={onFechar} className="ml-auto">
-            Deixar como está
-          </Botao>
-          <Botao onClick={aplicar} disabled={salvando}>
-            {salvando ? 'Salvando…' : 'Aplicar'}
-          </Botao>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <p className="text-sm">Quer mudar alguma coisa em {nomeDe(aq.ativo_tipo, ativo)}? Nada muda se você escolher "Deixar como está".</p>
-        <Campo rotulo="Status do ativo">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={entrada}>
-            {Object.entries(STATUS_ATIVO[aq.ativo_tipo]).map(([v, s]) => (
-              <option key={v} value={v}>
-                {s.icone} {s.nome}
-                {v === atualStatus ? ' (atual)' : ''}
-              </option>
-            ))}
-          </select>
-        </Campo>
-        {aq.ativo_tipo === 'conta' && (
-          <Campo rotulo="Coluna no quadro de uso">
-            <select value={uso} onChange={(e) => setUso(e.target.value)} className={entrada}>
-              <option value="veiculando">▶ Veiculando ads</option>
-              <option value="aquecimento">◐ Aquecimento</option>
-              <option value="parada">○ Sem uso</option>
-            </select>
-          </Campo>
-        )}
       </div>
     </Modal>
   )

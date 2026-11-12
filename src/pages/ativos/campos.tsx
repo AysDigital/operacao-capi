@@ -18,6 +18,7 @@ import {
   type TipoTitular,
 } from '../../lib/ativos'
 import { diaBrasilia, formatarDiaIso } from '../../lib/format'
+import { SITUACAO_AQUECIMENTO, situacaoDe } from '../../lib/contingencia'
 
 /** Tipos de campo do formulário. */
 export type TipoCampo = 'texto' | 'area' | 'data' | 'dinheiro' | 'idMeta' | 'opcoes' | 'sim_nao' | 'fornecedor' | 'cartao' | 'sigla' | 'moeda' | 'ultimos4' | 'dominio'
@@ -134,6 +135,19 @@ export function SeloStatusAtivo({ tipo, status }: { tipo: TipoAtivo; status: unk
   )
 }
 
+/** Situação na Contingência (perfis, BMs, contas e páginas). */
+export function SeloAquecimento({ r, soPendente }: { r: Registro; soPendente?: boolean }) {
+  const s = situacaoDe(r)
+  if (soPendente && s === 'pronto') return null
+  const info = SITUACAO_AQUECIMENTO[s]
+  return (
+    <Selo tom={info.tom}>
+      <span aria-hidden>{info.icone}</span>
+      {info.nome}
+    </Selo>
+  )
+}
+
 export const valorTexto = (v: unknown) => (v == null || v === '' ? '—' : String(v))
 export const dinheiro = (v: unknown, moeda = 'BRL') =>
   v == null ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: moeda.length === 3 ? moeda : 'BRL' })
@@ -239,6 +253,14 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
       return itens.length ? <span title={resumoPorTipo(itens)}>{itens.length}</span> : '—'
     },
   })
+  const aquecimento: Coluna = {
+    rotulo: (
+      <Dica lado="direita" conteudo="Situação na Contingência: Aquecendo (no quadro de aquecimento), Pronto (checklist completo ou marcado como pronto) ou A classificar.">
+        Aquecimento
+      </Dica>
+    ),
+    valor: (r) => <SeloAquecimento r={r} />,
+  }
   const fornecedor: Coluna = {
     rotulo: 'Fornecedor',
     valor: (r) =>
@@ -250,6 +272,7 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
       return [
         nome,
         status,
+        aquecimento,
         { rotulo: 'Origem', valor: (r) => ORIGENS.find((o) => o.valor === r.origem)?.nome ?? '—' },
         fornecedor,
         daTitular('dona'),
@@ -259,6 +282,7 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
       return [
         nome,
         status,
+        aquecimento,
         { rotulo: 'Verificada', valor: (r) => (r.verificada ? '✓ Sim' : <span className="text-muted">Não</span>) },
         idMeta('meta_id'),
         acesso,
@@ -273,13 +297,14 @@ export function colunas(tipo: TipoAtivo, inv: Inventario): Coluna[] {
         },
         { rotulo: 'Nome', valor: (r) => <span className="font-medium">{String(r.nome)}</span> },
         status,
+        aquecimento,
         acesso,
         idMeta('meta_ad_account_id'),
         { rotulo: 'Limite', classe: num, valor: (r) => (r.limite_gasto == null ? '—' : dinheiro(r.limite_gasto, String(r.moeda ?? 'BRL'))) },
         { rotulo: 'Cartão', valor: (r) => (r.cartao_id ? nomeAtivo(inv, 'cartao', r.cartao_id as string) : '—') },
       ]
     case 'pagina':
-      return [nome, status, idMeta('meta_id'), acesso, { rotulo: 'Ofertas', classe: num, valor: (r) => ofertasDe(inv, 'pagina_id', r.id) || '—' }]
+      return [nome, status, aquecimento, idMeta('meta_id'), acesso, { rotulo: 'Ofertas', classe: num, valor: (r) => ofertasDe(inv, 'pagina_id', r.id) || '—' }]
     case 'pixel':
       return [nome, status, idMeta('meta_id'), acesso, { rotulo: 'Ofertas', classe: num, valor: (r) => ofertasDe(inv, 'pixel_id', r.id) || '—' }]
     case 'dominio':
