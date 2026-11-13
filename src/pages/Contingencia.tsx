@@ -85,7 +85,7 @@ export function Contingencia() {
 
       {dados && (
         <>
-          <PainelReserva situacao={situacao} reserva={dados.reserva} onMudou={carregar} />
+          <PainelReserva situacao={situacao} reserva={dados.reserva} inv={dados.inv} onMudou={carregar} />
 
           <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-line" aria-label="Seções da Contingência">
             {ABAS.map((a) => {

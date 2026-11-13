@@ -321,7 +321,9 @@ const TOPICOS: Topico[] = [
     itens: [
       i(
         'Como usar',
-        'Três colunas: Veiculando ads, Aquecimento e Sem uso. Arraste a conta para a coluna certa; a data "desde" é marcada sozinha.',
+        'Quatro colunas: Veiculando ads, Aquecimento, Sem uso e Restrito / Desativado. Arraste a conta para a coluna certa; a data "desde" é marcada sozinha.',
+        'Aquecimento anda junto com a Contingência: colocar a conta aqui inicia o aquecimento (Dia 1) com o roteiro padrão de conta; toda conta que começa a aquecer pela Contingência aparece aqui; quando o checklist termina, ela vai para "Sem uso". Tirar a conta daqui não apaga o aquecimento.',
+        'Restrito / Desativado mostra as contas com esses status. Arrastar uma conta para lá marca como Restrita; tirar de lá marca como Ativa (as duas mudanças vão para o histórico de status).',
         'Clique na conta para marcar a oferta que ela roda, corrigir a data e escrever uma anotação.',
         'Nada muda sozinho: o quadro mostra só o que você colocar. Contas desativadas não aparecem.',
         'O mesmo quadro fica em Ativos → Contas → "Quadro de uso".',
@@ -346,6 +348,7 @@ const TOPICOS: Topico[] = [
         'Colunas Dia 1, Dia 2… e Pronto. O card fica no primeiro dia que ainda tem tarefa por marcar.',
         'Borda vermelha e "atrasado" = o calendário já passou daquele dia (contado do início) e ainda falta tarefa.',
         'Dentro do card: "Marcar todos" em cada dia, "Marcar tudo (pronto)" para fechar de uma vez, Interromper (com motivo, o ativo volta para "A classificar") e Excluir. Desmarcar uma tarefa de um card pronto reabre o aquecimento.',
+        'Para ver as colunas do lado, clique e arraste o quadro para o lado (em qualquer lugar, até em cima de um card).',
         'Os botões do topo filtram por tipo. A coluna Pronto mostra todos os ativos prontos e não caídos: os que completaram o checklist (clique para ver) e os que você classificou como prontos.',
       ),
       i(
@@ -369,6 +372,7 @@ const TOPICOS: Topico[] = [
         'Em "Configurar mínimo", diga quantos perfis, BMs, contas e páginas prontos você quer ter sempre.',
         'Pronto = não caído, com aquecimento "Pronto" e sem uso: perfil fora de "Em uso"; conta em "Sem uso" no quadro de uso; página sem oferta ligada.',
         'Abaixo do mínimo, aparece o alerta vermelho aqui e em Ativos.',
+        'Clique num dos quadrinhos para abrir a lista dos prontos daquele tipo, com link para cada um em Ativos.',
       ),
       i(
         'Quedas',

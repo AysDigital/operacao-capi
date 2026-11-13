@@ -17,22 +17,36 @@ import { SeloAquecimento, SeloPapel, SeloStatusAtivo } from './campos'
  */
 
 type Uso = 'veiculando' | 'aquecimento' | 'parada'
+/** Coluna do quadro: as três de uso + a de contas caídas (pelo status). */
+type ColunaUso = Uso | 'caida'
 type Oferta = { id: string; nome: string; codigo: string; idioma: string; cor: string | null }
 
-const COLUNAS: { uso: Uso; nome: string; icone: string; dica: string }[] = [
+const COLUNAS: { uso: ColunaUso; nome: string; icone: string; dica: string }[] = [
   { uso: 'veiculando', nome: 'Veiculando ads', icone: '▶', dica: 'Contas rodando anúncios de verdade de alguma oferta.' },
-  { uso: 'aquecimento', nome: 'Aquecimento', icone: '◐', dica: 'Contas só com campanha de aquecimento, ainda sem ads da operação.' },
+  {
+    uso: 'aquecimento',
+    nome: 'Aquecimento',
+    icone: '◐',
+    dica: 'Contas aquecendo. Colocar uma conta aqui inicia o aquecimento (Dia 1) na Contingência; e toda conta que começa a aquecer pela Contingência aparece aqui. Quando o aquecimento termina, ela vai para "Sem uso".',
+  },
   { uso: 'parada', nome: 'Sem uso', icone: '○', dica: 'Contas ativas que não estão rodando nada agora.' },
+  {
+    uso: 'caida',
+    nome: 'Restrito / Desativado',
+    icone: '!',
+    dica: 'Contas com status Restrita ou Desativada. Arrastar uma conta para cá marca como Restrita (vai para o histórico de status); tirar daqui marca como Ativa de novo.',
+  },
 ]
 
 const usoDe = (c: Registro): Uso => (c.uso as Uso) ?? 'parada'
+const colunaDe = (c: Registro): ColunaUso => ((c.status ?? 'ativa') !== 'ativa' ? 'caida' : usoDe(c))
 
 export function QuadroContas({ inv, onMudou, onAbrir }: { inv: Inventario; onMudou: () => void; onAbrir: (tipo: TipoAtivo, id: string) => void }) {
   const toast = useToast()
   const [ofertas, setOfertas] = useState<Oferta[]>([])
   const [editando, setEditando] = useState<Registro | null>(null)
   // cópia local para o cartão mudar de coluna na hora, antes de o banco responder
-  const [movidos, setMovidos] = useState<Record<string, { uso: Uso; uso_posicao: number }>>({})
+  const [movidos, setMovidos] = useState<Record<string, { uso: Uso; uso_posicao: number; status?: string }>>({})
 
   useEffect(() => {
     ops()
@@ -44,7 +58,7 @@ export function QuadroContas({ inv, onMudou, onAbrir }: { inv: Inventario; onMud
   }, [])
   useEffect(() => setMovidos({}), [inv])
 
-  const contas = inv.conta.filter((c) => c.status !== 'desativada').map((c) => (movidos[c.id] ? { ...c, ...movidos[c.id] } : c))
+  const contas = inv.conta.map((c) => (movidos[c.id] ? { ...c, ...movidos[c.id] } : c))
 
   const sensores = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -54,23 +68,49 @@ export function QuadroContas({ inv, onMudou, onAbrir }: { inv: Inventario; onMud
   async function soltar({ active, over }: DragEndEvent) {
     if (!over) return
     const c = contas.find((x) => x.id === active.id)
-    const uso = String(over.id) as Uso
-    if (!c || usoDe(c) === uso) return
-    const uso_posicao = Math.max(0, ...contas.filter((x) => usoDe(x) === uso).map((x) => Number(x.uso_posicao) || 0)) + 1024
-    setMovidos((m) => ({ ...m, [c.id]: { uso, uso_posicao } }))
+    const destino = String(over.id) as ColunaUso
+    if (!c || colunaDe(c) === destino) return
+    const posicao = Math.max(0, ...contas.filter((x) => colunaDe(x) === destino).map((x) => Number(x.uso_posicao) || 0)) + 1024
+    const mudarStatus = (status: string, motivo: string) =>
+      ops().rpc('mudar_status_ativo', { p_tipo: 'conta', p_id: c.id, p_status: status, p_motivo: motivo, p_data: diaBrasilia() })
+
+    // para a coluna das caídas: muda o status para Restrita (o uso fica como estava)
+    if (destino === 'caida') {
+      setMovidos((m) => ({ ...m, [c.id]: { uso: usoDe(c), uso_posicao: posicao, status: 'restrita' } }))
+      const { error } = await mudarStatus('restrita', 'Movida para Restrito / Desativado no quadro de uso')
+      if (error) toast('ruim', mensagemErro(error))
+      else toast('bom', `${String(c.apelido)} marcada como Restrita.`)
+      return onMudou()
+    }
+    // saindo da coluna das caídas: volta a ficar Ativa
+    if (colunaDe(c) === 'caida') {
+      const { error } = await mudarStatus('ativa', 'Voltou a ser usada (quadro de uso)')
+      if (error) {
+        toast('ruim', mensagemErro(error))
+        return onMudou()
+      }
+    }
+    const uso = destino
+    if (usoDe(c) === uso) {
+      setMovidos((m) => ({ ...m, [c.id]: { uso, uso_posicao: posicao, status: 'ativa' } }))
+      return onMudou()
+    }
+    const uso_posicao = posicao
+    setMovidos((m) => ({ ...m, [c.id]: { uso, uso_posicao, status: 'ativa' } }))
     const mudancas: Record<string, unknown> = { uso, uso_posicao, uso_desde: diaBrasilia() }
     if (uso === 'parada') mudancas.uso_oferta_id = null
     const { error } = await ops().from('contas_anuncio').update(mudancas).eq('id', c.id)
     if (error) toast('ruim', mensagemErro(error))
+    else if (uso === 'aquecimento') toast('bom', `${String(c.apelido)} entrou no aquecimento (Dia 1) da Contingência.`)
     onMudou()
   }
 
   return (
     <>
       <DndContext sensors={sensores} onDragEnd={soltar}>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {COLUNAS.map((col) => {
-            const daColuna = contas.filter((c) => usoDe(c) === col.uso).sort((a, b) => (Number(a.uso_posicao) || 0) - (Number(b.uso_posicao) || 0))
+            const daColuna = contas.filter((c) => colunaDe(c) === col.uso).sort((a, b) => (Number(a.uso_posicao) || 0) - (Number(b.uso_posicao) || 0))
             return (
               <Coluna key={col.uso} uso={col.uso} titulo={col.nome} icone={col.icone} dica={col.dica} total={daColuna.length}>
                 {daColuna.map((c) => (
@@ -101,7 +141,7 @@ export function QuadroContas({ inv, onMudou, onAbrir }: { inv: Inventario; onMud
   )
 }
 
-function Coluna({ uso, titulo, icone, dica, total, children }: { uso: Uso; titulo: string; icone: string; dica: string; total: number; children: ReactNode }) {
+function Coluna({ uso, titulo, icone, dica, total, children }: { uso: ColunaUso; titulo: string; icone: string; dica: string; total: number; children: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: uso })
   return (
     <section ref={setNodeRef} aria-label={titulo} className={`flex min-h-48 flex-col rounded-card border border-line p-2 ${isOver ? 'bg-accent-soft/60' : 'bg-surface-2'}`}>

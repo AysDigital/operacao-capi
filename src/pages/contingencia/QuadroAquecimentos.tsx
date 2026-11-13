@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Aviso, Dica } from '../../components/ds'
 import { caido, nomeDe, type Inventario, type Registro } from '../../lib/ativos'
 import { atrasado, diaAtual, diaDoQuadro, NOME_TIPO, progresso, situacaoDe, TIPOS_AQUECIVEIS, type Aquecimento, type TipoAquecivel } from '../../lib/contingencia'
+import { useArrastarRolagem } from '../../lib/arrastarRolagem'
 import { formatarDiaIso } from '../../lib/format'
 
 /** Ativo pronto sem aquecimento concluído no app (classificado como pronto). */
@@ -25,6 +26,7 @@ export function QuadroAquecimentos({
   onClassificar: () => void
 }) {
   const [filtro, setFiltro] = useState<TipoAquecivel | ''>('')
+  const trilho = useArrastarRolagem<HTMLDivElement>()
   const doFiltro = aquecimentos.filter((a) => !filtro || a.ativo_tipo === filtro)
   const andamento = doFiltro.filter((a) => a.status === 'andamento')
 
@@ -80,7 +82,7 @@ export function QuadroAquecimentos({
         </span>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-3">
+      <div {...trilho} className="flex cursor-grab gap-3 overflow-x-auto pb-3">
         {dias.map((d) => (
           <Coluna key={d} titulo={`Dia ${d}`} cards={andamento.filter((a) => diaDoQuadro(a) === d)} inv={inv} onAbrir={onAbrir} />
         ))}

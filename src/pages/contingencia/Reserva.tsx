@@ -1,18 +1,21 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
-import { Aviso, Dica, Modal } from '../../components/ds'
+import { Aviso, Dica, Modal, PainelLateral, Vazio } from '../../components/ds'
 import { useToast } from '../../components/Toast'
 import { Botao, Campo, entrada } from '../../components/ui'
 import { mensagemErro } from '../../lib/cadastros'
-import { NOME_TIPO, TIPOS_AQUECIVEIS, type Reserva, type SituacaoReserva } from '../../lib/contingencia'
+import { nomeDe, TIPOS, type Inventario } from '../../lib/ativos'
+import { NOME_TIPO, prontos, TIPOS_AQUECIVEIS, type Reserva, type SituacaoReserva, type TipoAquecivel } from '../../lib/contingencia'
+import { SeloStatusAtivo } from '../ativos/campos'
 import { ops } from '../../lib/supabase'
 
 const EXPLICACAO =
   'Pronto = não caído, com aquecimento "Pronto" e sem uso agora: perfil fora de "Em uso"; conta na coluna "Sem uso" do quadro de uso; página sem oferta ligada; BM pronta.'
 
 /** Painel do topo da Contingência: prontos × mínimo por tipo. */
-export function PainelReserva({ situacao, reserva, onMudou }: { situacao: SituacaoReserva[]; reserva: Reserva; onMudou: () => void }) {
+export function PainelReserva({ situacao, reserva, inv, onMudou }: { situacao: SituacaoReserva[]; reserva: Reserva; inv: Inventario; onMudou: () => void }) {
   const [configurando, setConfigurando] = useState(false)
+  const [vendo, setVendo] = useState<TipoAquecivel | null>(null)
   const abaixo = situacao.filter((s) => s.abaixo)
   return (
     <section className="mb-6">
@@ -28,7 +31,12 @@ export function PainelReserva({ situacao, reserva, onMudou }: { situacao: Situac
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {situacao.map((s) => (
-          <div key={s.tipo} className={`rounded-card border p-3 ${s.abaixo ? 'border-bad/50 bg-bad-soft/40' : 'border-line bg-surface'}`}>
+          <button
+            key={s.tipo}
+            onClick={() => setVendo(s.tipo)}
+            title={`Ver os ${NOME_TIPO[s.tipo].varios.toLowerCase()} prontos`}
+            className={`rounded-card border p-3 text-left transition-colors hover:border-muted ${s.abaixo ? 'border-bad/50 bg-bad-soft/40' : 'border-line bg-surface'}`}
+          >
             <p className="text-xs text-muted">{NOME_TIPO[s.tipo].varios} prontos</p>
             <p className="mt-1 flex items-baseline gap-1.5">
               <span className={`text-2xl font-semibold tabular-nums ${s.abaixo ? 'text-bad' : ''}`}>{s.prontos}</span>
@@ -37,7 +45,7 @@ export function PainelReserva({ situacao, reserva, onMudou }: { situacao: Situac
             <p className={`mt-1 text-xs ${s.abaixo ? 'text-bad' : 'text-good'}`}>
               {s.minimo === 0 ? <span className="text-muted">Sem mínimo definido</span> : s.abaixo ? `! Faltam ${s.minimo - s.prontos}` : '✓ Reserva ok'}
             </p>
-          </div>
+          </button>
         ))}
       </div>
       {abaixo.length > 0 && (
@@ -45,8 +53,37 @@ export function PainelReserva({ situacao, reserva, onMudou }: { situacao: Situac
           <AvisoReserva abaixo={abaixo} />
         </div>
       )}
+      {vendo && <ListaProntos tipo={vendo} inv={inv} onFechar={() => setVendo(null)} />}
       {configurando && <ConfigurarReserva reserva={reserva} onFechar={() => setConfigurando(false)} onSalvo={onMudou} />}
     </section>
+  )
+}
+
+/** Painel lateral com os ativos prontos de um tipo, cada um com link para o cadastro em Ativos. */
+function ListaProntos({ tipo, inv, onFechar }: { tipo: TipoAquecivel; inv: Inventario; onFechar: () => void }) {
+  const lista = prontos(inv, tipo).sort((a, b) => nomeDe(tipo, a).localeCompare(nomeDe(tipo, b), 'pt-BR', { numeric: true }))
+  return (
+    <PainelLateral titulo={`${NOME_TIPO[tipo].varios} prontos (${lista.length})`} onFechar={onFechar}>
+      <p className="mb-3 text-sm text-muted">{EXPLICACAO}</p>
+      {lista.length === 0 ? (
+        <Vazio titulo={`Nenhum ${NOME_TIPO[tipo].um.toLowerCase()} pronto agora`} />
+      ) : (
+        <ul className="divide-y divide-line rounded-card border border-line">
+          {lista.map((r) => (
+            <li key={r.id}>
+              <Link
+                to={`/ativos?aba=${TIPOS[tipo].aba}&id=${r.id}`}
+                className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-surface-2"
+              >
+                <span className="min-w-0 flex-1 truncate font-medium">{nomeDe(tipo, r)}</span>
+                <SeloStatusAtivo tipo={tipo} status={r.status} />
+                <span aria-hidden className="text-muted">→</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PainelLateral>
   )
 }
 
