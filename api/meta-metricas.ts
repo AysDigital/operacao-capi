@@ -1,4 +1,5 @@
 import { autenticar, chaveMeta, diaBrasilia, erro, graphPaginado, json, ptax, type Ops } from './_lib/servidor.js'
+import { sincronizarStatus } from './_lib/statusMeta.js'
 
 /**
  * POST /api/meta-metricas   corpo opcional: { "completo": true }
@@ -151,5 +152,8 @@ export async function POST(request: Request): Promise<Response> {
   const falhas = resultados.filter((r) => r.erro).map((r) => ({ conta: r.conta.apelido, erro: r.erro }))
   await ops.from('metricas_buscas').insert({ desde, ate, contas: lista.length, linhas: linhas.length, falhas })
 
-  return json({ periodo: { desde, ate }, contas: lista.length, linhas: linhas.length, falhas })
+  // status dos anúncios (Em análise → Rodando etc.); não derruba a busca se falhar
+  const sinc = await sincronizarStatus(ops, meta.token, meta.versao)
+
+  return json({ periodo: { desde, ate }, contas: lista.length, linhas: linhas.length, falhas, status_atualizados: sinc.mudadas })
 }

@@ -165,6 +165,7 @@ const TOPICOS: Topico[] = [
         'Métricas',
         'Gasto, faturamento, ROAS, vendas, CPA, CPM, CTR e hook rate, em 7 dias, 30 dias ou tudo. "Ver por conta" separa por veiculação.',
         'As métricas da Meta são buscadas sozinhas a cada hora (ou em "Atualizar agora"), desde o último dia que já tinha chegado. Se algum dia ficou sem números, use "Refazer 90 dias".',
+        'Na mesma busca (e no "Preencher IDs da Meta"), o app confere o status de cada anúncio com ID na Meta: "Não subido" e "Em análise" passam sozinhos a Rodando (aprovado), Pausado ou Em análise; "Rodando" que foi pausado na Meta vira Pausado. Pausado no app não volta sozinho para Rodando, e rejeição continua sendo registrada à mão.',
         'Faturamento = vendas aprovadas com o ID do anúncio (principal + upsell + downsell). Vendas e CPA contam só o produto principal.',
       ),
       i(

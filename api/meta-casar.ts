@@ -1,4 +1,5 @@
 import { autenticar, chaveMeta, erro, graphPaginado, json } from './_lib/servidor.js'
+import { sincronizarStatus, statusDaMeta } from './_lib/statusMeta.js'
 
 /**
  * POST /api/meta-casar   corpo: { oferta?: id da oferta }   (sem oferta = todas)
@@ -25,13 +26,6 @@ type Pendente = {
 
 const RE = /ad\s*0*(\d+)[\W_]{0,3}h\s*0*(\d+)[\W_]{0,3}m\s*0*(\d+)/i
 
-function statusDaMeta(s: string): string | null {
-  if (s === 'ACTIVE') return 'rodando'
-  if (s === 'PAUSED' || s === 'CAMPAIGN_PAUSED' || s === 'ADSET_PAUSED') return 'pausado'
-  if (s === 'DISAPPROVED') return 'rejeitado'
-  if (s === 'PENDING_REVIEW' || s === 'IN_PROCESS' || s === 'PREAPPROVED' || s === 'WITH_ISSUES') return 'em_analise'
-  return null
-}
 
 export async function POST(request: Request): Promise<Response> {
   const auth = await autenticar(request)
@@ -115,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
       const a = candidatos[0]
       const mudancas: Record<string, unknown> = { meta_ad_id: a.id, nome_no_meta: a.name }
       const st = statusDaMeta(a.effective_status)
-      if (p.status === 'nao_subido' && st) mudancas.status = st
+      if (p.status === 'nao_subido' && st && st !== 'rejeitado') mudancas.status = st
       const { error: e3 } = await auth.ops.from('veiculacoes').update(mudancas).eq('id', p.id)
       if (e3) {
         falhas.push({ conta: rotulo, erro: e3.message })
@@ -127,5 +121,9 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  return json({ pendentes: pendentes.length, preenchidas, nao_achados: naoAchados, duvidas, falhas, contas_sem_id: semIdConta })
+  // status: quem estava em análise (ou não subido) e já foi aprovado/pausado na Meta
+  const sinc = await sincronizarStatus(auth.ops, meta.token, meta.versao)
+  if (sinc.falha) falhas.push({ conta: 'status na Meta', erro: sinc.falha })
+
+  return json({ pendentes: pendentes.length, preenchidas, nao_achados: naoAchados, duvidas, falhas, contas_sem_id: semIdConta, status_atualizados: sinc.mudadas })
 }

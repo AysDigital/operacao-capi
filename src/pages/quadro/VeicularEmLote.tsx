@@ -205,7 +205,7 @@ export function PreencherIdsMeta({ ofertaId, onFechar, onFeito }: { ofertaId: st
     casarAnunciosPeloNome(ofertaId).then(
       (res) => {
         setR(res)
-        if (res.preenchidas) onFeito()
+        if (res.preenchidas || res.status_atualizados) onFeito()
       },
       (e: Error) => setErro(e.message),
     )
@@ -243,6 +243,7 @@ export function PreencherIdsMeta({ ofertaId, onFechar, onFeito }: { ofertaId: st
               {r.preenchidas} de {r.pendentes} veiculação(ões) sem ID foram preenchidas.
             </Aviso>
           )}
+          {(r.status_atualizados ?? 0) > 0 && <Aviso tom="bom">{r.status_atualizados} conta(s) mudaram de status pelo que está na Meta (ex.: Em análise → Rodando).</Aviso>}
           {lista('Não achei o anúncio na Meta', r.nao_achados, 'atencao')}
           {lista('Mais de um anúncio com o mesmo nome: escolha no card', r.duvidas, 'atencao')}
           {lista('Contas sem o ID da Meta (preencha em Ativos)', r.contas_sem_id, 'ruim')}
@@ -252,7 +253,7 @@ export function PreencherIdsMeta({ ofertaId, onFechar, onFeito }: { ofertaId: st
             'ruim',
           )}
           <p className="text-xs text-muted">
-            O app procura no nome do anúncio o padrão "ad12-h1-m2". Quem estava "Não subido" passa a ter o status do anúncio na Meta (rodando, em análise, pausado ou rejeitado).
+            O app procura no nome do anúncio o padrão "ad12-h1-m2". Depois confere o status na Meta: "Não subido" e "Em análise" passam a Rodando, Pausado ou Em análise; "Rodando" pausado na Meta vira Pausado. Rejeição continua sendo registrada à mão no card.
           </p>
         </div>
       )}

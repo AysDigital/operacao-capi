@@ -71,6 +71,8 @@ export type ResultadoCasar = {
   duvidas: string[]
   falhas: { conta: string; erro: string }[]
   contas_sem_id: string[]
+  /** veiculações que mudaram de status pelo status do anúncio na Meta (em análise → rodando etc.) */
+  status_atualizados?: number
 }
 
 /** Preenche o ID do anúncio nas veiculações sem ID, casando pelo "adN-hN-mN" do nome na Meta. */
