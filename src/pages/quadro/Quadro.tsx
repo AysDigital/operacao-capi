@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   closestCorners,
   DndContext,
@@ -296,6 +296,27 @@ export function Quadro({
 
   // ---- arrastar o quadro para o lado (clicando no fundo, fora dos cards) ----
   const trilho = useRef<HTMLDivElement>(null)
+
+  // o quadro ocupa a tela até embaixo: altura = janela − onde o quadro começa − margem de baixo da página
+  const [altura, setAltura] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const el = trilho.current
+    if (!el) return
+    const medir = () => {
+      const topo = el.getBoundingClientRect().top + window.scrollY
+      const main = el.closest('main')
+      const folga = main ? parseFloat(getComputedStyle(main).paddingBottom) || 0 : 0
+      setAltura(Math.max(320, Math.floor(window.innerHeight - topo - folga)))
+    }
+    medir()
+    const obs = new ResizeObserver(medir)
+    if (el.parentElement) obs.observe(el.parentElement)
+    window.addEventListener('resize', medir)
+    return () => {
+      obs.disconnect()
+      window.removeEventListener('resize', medir)
+    }
+  }, [])
   const puxando = useRef<{ x: number; rolagem: number } | null>(null)
 
   function comecarPuxar(e: React.PointerEvent) {
@@ -447,7 +468,8 @@ export function Quadro({
           onPointerMove={puxar}
           onPointerUp={soltarPuxar}
           onPointerCancel={soltarPuxar}
-          className="-mx-4 flex min-h-[calc(100dvh-15rem)] cursor-grab items-start gap-3 overflow-x-auto px-4 pb-4 select-none active:cursor-grabbing md:-mx-10 md:px-10"
+          style={{ height: altura ?? undefined }}
+          className="-mx-4 flex cursor-grab items-stretch gap-3 overflow-x-auto px-4 pb-4 select-none active:cursor-grabbing md:-mx-10 md:px-10"
         >
           {ativas.map((l) => (
             <Coluna
@@ -657,7 +679,7 @@ const Coluna = memo(function Coluna({
     <section
       ref={setNodeRef}
       aria-label={lista.nome}
-      className={`flex max-h-[calc(100dvh-15rem)] w-72 shrink-0 flex-col rounded-card border border-line ${isOver ? 'bg-accent-soft/60' : 'bg-surface-2'}`}
+      className={`flex min-h-0 w-72 shrink-0 flex-col rounded-card border border-line ${isOver ? 'bg-accent-soft/60' : 'bg-surface-2'}`}
     >
       <header className="flex items-center gap-2 px-3 pt-2.5 pb-2">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: lista.cor ?? undefined }} />
@@ -676,7 +698,7 @@ const Coluna = memo(function Coluna({
         </button>
       </header>
 
-      <div className="flex min-h-8 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
+      <div className="flex min-h-8 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
         {carregando ? (
           Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-control bg-surface" />)
         ) : (

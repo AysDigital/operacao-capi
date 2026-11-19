@@ -562,3 +562,7 @@ Manual de Bidcap da usuária: cada anúncio passa por Validação (D1–D3 desde
 ## Ajustes de 17/11/2026
 
 - **Migration 045:** os ads de PC-EN em "Em veiculação" foram subidos em 17/11 na conta nova, mas alguns apareciam como D2 (a conta tinha virado "Rodando" em 16/11). Toda conta "Rodando" desses cards passou a contar a fase desde 17/11. Resultado: 31 de 31 cards com D1 hoje, nenhum sem conta rodando.
+
+## Ajustes de 19/11/2026
+
+- **Quadros até o fim da tela:** o quadro mede onde começa e ocupa a altura da janela até embaixo (descontando a margem da página), recalculando quando a janela ou o topo da página mudam de tamanho. As listas esticam até o fim e os cards rolam dentro de cada lista.
