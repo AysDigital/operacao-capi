@@ -69,6 +69,22 @@ export function Layout() {
   // Quadros: a página não rola; o quadro ocupa a altura que sobra da janela (as listas rolam por dentro)
   const telaCheia = caminho.startsWith('/quadros')
 
+  // Em Quadros a página inteira nunca rola (como no Trello): trava o html e o body.
+  // Sem isso, qualquer elemento solto (extensão do navegador, dica posicionada) aumentava a página
+  // e aparecia aquele espaço vazio embaixo do quadro.
+  useEffect(() => {
+    if (!telaCheia) return
+    const html = document.documentElement
+    const antes = { html: html.style.overflow, body: document.body.style.overflow }
+    html.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    window.scrollTo(0, 0)
+    return () => {
+      html.style.overflow = antes.html
+      document.body.style.overflow = antes.body
+    }
+  }, [telaCheia])
+
   useEffect(() => {
     try {
       localStorage.setItem('menu_recolhido', recolhido ? '1' : '0')
@@ -78,7 +94,7 @@ export function Layout() {
   }, [recolhido])
 
   return (
-    <div className={telaCheia ? 'flex h-dvh flex-col overflow-hidden md:flex-row' : 'min-h-screen md:flex'}>
+    <div className={telaCheia ? 'fixed inset-0 flex flex-col overflow-hidden md:flex-row' : 'min-h-screen md:flex'}>
       {/* Barra superior no celular */}
       <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
         <Marca />
