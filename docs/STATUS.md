@@ -565,4 +565,4 @@ Manual de Bidcap da usuária: cada anúncio passa por Validação (D1–D3 desde
 
 ## Ajustes de 19/11/2026
 
-- **Quadros até o fim da tela:** o quadro mede onde começa e ocupa a altura da janela até embaixo (descontando a margem da página), recalculando quando a janela ou o topo da página mudam de tamanho. As listas esticam até o fim e os cards rolam dentro de cada lista.
+- **Quadros até o fim da tela (refeito):** a primeira versão media a altura com JavaScript e não funcionou. Agora é só layout: em `/quadros` o `Layout` fica com a altura da janela (`h-dvh`, sem rolagem da página) e a página é uma coluna flex; o trilho do quadro é `flex-1 min-h-0` (a barra horizontal fica no rodapé) e cada lista tem `max-h-full`, com o cabeçalho e o "+ Adicionar card" fixos e os cards rolando no meio. Listas curtas ficam do tamanho do conteúdo. Avisos no topo encolhem o quadro sem criar rolagem. Testado com uma página de teste (mesmas classes) no Chrome em 1366×768 e 1000×620: antes a página rolava, depois não rola e o quadro termina no fim da janela.

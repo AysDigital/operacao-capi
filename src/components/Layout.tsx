@@ -66,6 +66,8 @@ export function Layout() {
   // o quadro usa a largura toda da tela
   const caminho = useLocation().pathname
   const largo = caminho.startsWith('/quadros') || caminho.startsWith('/ranking')
+  // Quadros: a página não rola; o quadro ocupa a altura que sobra da janela (as listas rolam por dentro)
+  const telaCheia = caminho.startsWith('/quadros')
 
   useEffect(() => {
     try {
@@ -76,7 +78,7 @@ export function Layout() {
   }, [recolhido])
 
   return (
-    <div className="min-h-screen md:flex">
+    <div className={telaCheia ? 'flex h-dvh flex-col overflow-hidden md:flex-row' : 'min-h-screen md:flex'}>
       {/* Barra superior no celular */}
       <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
         <Marca />
@@ -136,8 +138,8 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8">
-        <div className={largo ? '' : 'mx-auto max-w-6xl'}>
+      <main className={telaCheia ? 'flex min-h-0 min-w-0 flex-1 flex-col px-4 pt-6 md:px-10 md:pt-8' : 'min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8'}>
+        <div className={telaCheia ? 'flex min-h-0 flex-1 flex-col' : largo ? '' : 'mx-auto max-w-6xl'}>
           <Outlet />
         </div>
       </main>
